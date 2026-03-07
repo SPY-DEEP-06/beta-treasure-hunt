@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { eventLocations } from '../data/clues';
 import QRScanner from '../components/QRScanner';
-import { advanceClue, logScan } from '../firebase/db';
+import { advanceClue, logScan, listenToGpsSettings, updateTeamLocation } from '../firebase/db';
 import { QrCode, MapPin } from 'lucide-react';
 import PuzzleChallenge from '../components/PuzzleChallenge';
 
@@ -14,12 +14,66 @@ export default function ParticipantPortal() {
   const [riddleAnswer, setRiddleAnswer] = useState('');
   const [riddleError, setRiddleError] = useState('');
   const [riddlePassed, setRiddlePassed] = useState(false);
+  
+  // GPS Tracking State
+  const [gpsRequired, setGpsRequired] = useState(false);
+  const [locationAvailable, setLocationAvailable] = useState(false);
 
   useEffect(() => {
     if (!currentUser) {
       navigate('/login');
     }
   }, [currentUser, navigate]);
+
+  // GPS Settings & Tracking Effect
+  useEffect(() => {
+    if (!currentUser || !teamData) return;
+
+    let watchId;
+    let lastUpdate = 0;
+
+    const unsubscribeSettings = listenToGpsSettings((enabled) => {
+      setGpsRequired(enabled);
+      
+      if (enabled) {
+        if ("geolocation" in navigator) {
+          watchId = navigator.geolocation.watchPosition(
+            (position) => {
+              setLocationAvailable(true);
+              const now = Date.now();
+              // Throttle to 5 seconds
+              if (now - lastUpdate > 5000) {
+                lastUpdate = now;
+                updateTeamLocation(
+                  currentUser.uid, 
+                  teamData.teamName, 
+                  position.coords.latitude, 
+                  position.coords.longitude
+                );
+              }
+            },
+            (err) => {
+              console.error("GPS Error:", err);
+              setLocationAvailable(false);
+              updateTeamLocation(currentUser.uid, teamData.teamName, 0, 0, true);
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+          );
+        } else {
+          // Browser does not support Geolocation
+          setLocationAvailable(false);
+        }
+      } else {
+        if (watchId) navigator.geolocation.clearWatch(watchId);
+        setLocationAvailable(true); // Treat as available if not required
+      }
+    });
+
+    return () => {
+      unsubscribeSettings();
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [currentUser, teamData]);
 
   if (!currentUser || !teamData) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -88,6 +142,26 @@ export default function ParticipantPortal() {
         <p className="mt-8 text-emerald-400 font-bold border border-emerald-500/30 bg-emerald-500/10 px-6 py-3 rounded-xl">
           Head to the Admin desk to record your final time.
         </p>
+      </div>
+    );
+  }
+
+  if (gpsRequired && !locationAvailable) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-center">
+        <div className="w-16 h-16 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mb-6 animate-pulse">
+          <MapPin size={32} />
+        </div>
+        <h1 className="text-2xl font-black text-white mb-2">Location Required</h1>
+        <p className="text-slate-400 mb-6">
+          Location access is required to participate in the treasure hunt. Please allow GPS permission in your browser to continue.
+        </p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-6 py-3 bg-red-600 font-bold rounded-xl text-white shadow-lg shadow-red-500/20"
+        >
+          I've granted permission (Reload)
+        </button>
       </div>
     );
   }

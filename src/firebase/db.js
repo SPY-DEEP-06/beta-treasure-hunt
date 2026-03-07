@@ -74,3 +74,40 @@ export const listenToLeaderboard = (callback) => {
     callback(teams);
   });
 };
+
+// GPS Tracking Helpers
+export const listenToGpsSettings = (callback) => {
+  return onSnapshot(doc(db, 'Settings', 'config'), (docSnap) => {
+    if (docSnap.exists()) {
+      callback(docSnap.data().gpsTrackingEnabled || false);
+    } else {
+      callback(false);
+    }
+  });
+};
+
+export const updateGpsSettings = async (enabled) => {
+  const configRef = doc(db, 'Settings', 'config');
+  await setDoc(configRef, { gpsTrackingEnabled: enabled }, { merge: true });
+};
+
+export const updateTeamLocation = async (teamId, teamName, lat, lng, isOffline = false) => {
+  const locRef = doc(db, 'TeamLocations', teamId);
+  await setDoc(locRef, {
+    teamId,
+    teamName,
+    lat,
+    lng,
+    status: isOffline ? 'offline' : 'online',
+    timestamp: new Date().toISOString()
+  }, { merge: true });
+};
+
+export const listenToTeamLocations = (callback) => {
+  return onSnapshot(collection(db, 'TeamLocations'), (snapshot) => {
+    const locations = [];
+    snapshot.forEach(doc => locations.push(doc.data()));
+    callback(locations);
+  });
+};
+

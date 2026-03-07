@@ -1,22 +1,37 @@
 import React, { useEffect, useState } from 'react';
-import { listenToLeaderboard } from '../firebase/db';
+import { listenToLeaderboard, listenToGpsSettings } from '../firebase/db';
+import LiveCampusMap from '../components/LiveCampusMap';
 
 export default function LeaderboardPortal() {
   const [teams, setTeams] = useState([]);
+  const [gpsEnabled, setGpsEnabled] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = listenToLeaderboard((data) => {
+    const unsubTeams = listenToLeaderboard((data) => {
       setTeams(data);
     });
-    return () => unsubscribe();
+    const unsubGps = listenToGpsSettings((enabled) => {
+      setGpsEnabled(enabled);
+    });
+    
+    return () => {
+      unsubTeams();
+      unsubGps();
+    };
   }, []);
 
   return (
     <div className="min-h-screen p-8 text-white bg-slate-900">
       <h1 className="text-4xl font-black text-center mb-10 bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500">
-        Live Leaderboard
+        Live Event Tracking
       </h1>
       
+      {gpsEnabled && (
+        <div className="max-w-4xl mx-auto mb-8">
+          <LiveCampusMap teamsData={teams} />
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto glass rounded-2xl overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
