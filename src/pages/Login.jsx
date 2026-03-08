@@ -44,8 +44,8 @@ export default function Login() {
       
       navigate('/');
     } catch (err) {
-      setError(err.message === 'Incorrect password.' ? 'Incorrect password. Try again.' : 'Failed to log in. Please check your credentials.');
-      console.error(err);
+      setError(err.message === 'Incorrect password.' ? 'Incorrect password. Try again.' : `Error: ${err.message || 'Unknown login error'}`);
+      console.error("Login Error Details:", err);
     } finally {
       setLoading(false);
     }
