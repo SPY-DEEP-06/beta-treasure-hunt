@@ -6,7 +6,7 @@ service cloud.firestore {
     // Teams can only update their own GPS track.
     match /TeamLocations/{teamId} {
       allow read: if true;
-      allow write: if request.auth != null && (request.auth.uid == teamId || request.auth.uid == 'admin');
+      allow write: if request.auth != null && (request.auth.uid == teamId || request.auth.token.email == 'admin@beta.com');
     }
 
     // Teams Collection
@@ -25,7 +25,7 @@ service cloud.firestore {
     // Anyone can read if event is active, only Admin can write
     match /Settings/{settingId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == 'admin'; 
+      allow write: if request.auth != null && request.auth.token.email == 'admin@beta.com'; 
     }
 
     // Scan Logs

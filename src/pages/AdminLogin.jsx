@@ -1,13 +1,36 @@
 import React, { useState } from 'react';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase/config';
 
 export default function AdminLogin({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (password === 'BETA-TH26') {
-      onLogin();
+      setIsLoggingIn(true);
+      setError('');
+      try {
+        // Log into Firebase as the permanent Admin
+        await signInWithEmailAndPassword(auth, 'admin@beta.com', 'BETA-TH26');
+        onLogin();
+      } catch (err) {
+        // If admin account doesn't exist yet, create it instantly
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
+           try {
+              await createUserWithEmailAndPassword(auth, 'admin@beta.com', 'BETA-TH26');
+              onLogin();
+           } catch (createErr) {
+              setError('Admin Auth Failed: ' + createErr.message);
+              setIsLoggingIn(false);
+           }
+        } else {
+           setError('Firebase Error: ' + err.message);
+           setIsLoggingIn(false);
+        }
+      }
     } else {
       setError('Invalid admin password.');
     }
@@ -26,8 +49,8 @@ export default function AdminLogin({ onLogin }) {
             onChange={(e) => setPassword(e.target.value)}
           />
           {error && <p className="text-red-400 text-sm">{error}</p>}
-          <button type="submit" className="w-full py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-pink-500/25">
-            Verify
+          <button disabled={isLoggingIn} type="submit" className="w-full py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-pink-500/25">
+            {isLoggingIn ? 'Authenticating...' : 'Verify'}
           </button>
         </form>
       </div>
