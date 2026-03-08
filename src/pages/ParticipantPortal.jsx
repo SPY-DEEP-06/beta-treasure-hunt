@@ -114,8 +114,12 @@ export default function ParticipantPortal() {
     if (scannedId === currentTargetId) {
       if (teamData.currentClueIndex === 5) {
         setActivePuzzle('caesar');
+      } else if (teamData.currentClueIndex === 10) {
+        setActivePuzzle('rsa');
       } else if (teamData.currentClueIndex === 15) {
         setActivePuzzle('frequency');
+      } else if (teamData.currentClueIndex === 20) {
+        setActivePuzzle('passcode');
       } else {
         await proceedWithClue(scannedId);
       }

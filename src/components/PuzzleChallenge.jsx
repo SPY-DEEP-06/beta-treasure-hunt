@@ -16,6 +16,16 @@ export default function PuzzleChallenge({ onSolve, puzzleType = 'caesar' }) {
       desc: 'Set the slider to the optimal resonance frequency (75Hz) to bypass the lock.',
       isSlider: true,
       correctFunc: (ans) => parseInt(ans) >= 73 && parseInt(ans) <= 77
+    },
+    rsa: {
+      title: 'RSA Intercept',
+      desc: 'Given p=3, q=11, and e=7, find the modulus N to compute the public key (N = p * q).',
+      correctFunc: (ans) => ans.trim() === '33'
+    },
+    passcode: {
+      title: 'Override Cipher',
+      desc: 'Enter the 4-digit Master Override Passcode to continue (Hint: Root of 144, multiplied by 100, plus 34).',
+      correctFunc: (ans) => ans.trim() === '1234'
     }
   };
 

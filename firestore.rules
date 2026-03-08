@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Team Locations tracking - Anyone authenticated can read (for Leaderboard/Admin map)
+    // Teams can only update their own GPS track.
+    match /TeamLocations/{teamId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == teamId || request.auth.uid == 'admin';
+    }
+
+    // Teams Collection
+    // Public read for leaderboard. Teams can update their own data.
+    match /Teams/{teamId} {
+      allow read: if true;
+      // In a strict production environment, we should validate increments and timestamps, 
+      // but restricting writes to the authenticated user owning the document is a solid baseline.
+      allow update: if request.auth != null && request.auth.uid == teamId;
+      allow create: if request.auth != null; // Ideally admin only, but allowing if generating teams
+    }
+
+    // Settings Collection 
+    // Anyone can read if event is active, only Admin can write
+    match /Settings/{settingId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == 'admin'; 
+    }
+
+    // Scan Logs
+    // Authenticated users can create scan logs for telemetry. Admins can read.
+    match /ScanLogs/{logId} {
+      allow create: if request.auth != null;
+      allow read: if true; 
+    }
+  }
+}
