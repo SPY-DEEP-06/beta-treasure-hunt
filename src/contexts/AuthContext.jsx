@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 
@@ -17,6 +17,10 @@ export function AuthProvider({ children }) {
   // Login with given email (e.g., Team01@beta-treasure-hunt.com) and password
   async function login(email, password) {
     return signInWithEmailAndPassword(auth, email, password);
+  }
+
+  async function signup(email, password) {
+    return createUserWithEmailAndPassword(auth, email, password);
   }
 
   function logout() {
@@ -48,6 +52,7 @@ export function AuthProvider({ children }) {
     currentUser,
     teamData,
     login,
+    signup,
     logout,
     loading
   };
