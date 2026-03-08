@@ -35,9 +35,19 @@ export function AuthProvider({ children }) {
       if (user) {
         // Listen to team progress from Firestore in real-time
         const teamDocRef = doc(db, 'Teams', user.uid);
-        unsubDoc = onSnapshot(teamDocRef, (teamDoc) => {
+        unsubDoc = onSnapshot(teamDocRef, async (teamDoc) => {
           if (teamDoc.exists()) {
-            setTeamData({ id: teamDoc.id, ...teamDoc.data() });
+            const data = teamDoc.data();
+            
+            // Critical Auto-Heal: If the active session is a legacy account missing its path, fix it in the DB instantly.
+            if (!data.path || !Array.isArray(data.path) || data.path.length === 0) {
+              const { initializeTeamState } = await import('../firebase/db');
+              await initializeTeamState(teamDoc.id, data.teamName || `Team_${teamDoc.id.substring(0,4)}`);
+              // The setDoc inside initializeTeamState will immediately trigger this onSnapshot again.
+              return;
+            }
+            
+            setTeamData({ id: teamDoc.id, ...data });
           } else {
             setTeamData(null);
           }
