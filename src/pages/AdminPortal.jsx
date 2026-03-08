@@ -33,8 +33,22 @@ export default function AdminPortal() {
   
   const handleGenerateTeams = async () => {
     setLoading(true);
-    const result = await createTeams();
-    setGeneratedTeams(result.teams);
+    setGeneratedTeams(null);
+    try {
+      const result = await createTeams();
+      if (result.errors.length > 0) {
+        alert(`Generated ${result.teams.length} teams, but ${result.errors.length} failed. Typical cause: Email already exists or Rate Limit. Details in console.`);
+        console.error("Failed Teams:", result.errors);
+      }
+      // Show whatever teams were successfully created
+      if (result.teams.length > 0) {
+        setGeneratedTeams(result.teams);
+      } else {
+        alert("Failed to generate any new teams. They may already exist in your Firebase Authentication database.");
+      }
+    } catch (err) {
+      alert("Error generating teams: " + err.message);
+    }
     setLoading(false);
   };
 
