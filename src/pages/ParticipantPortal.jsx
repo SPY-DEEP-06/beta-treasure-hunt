@@ -97,6 +97,44 @@ export default function ParticipantPortal() {
     </div>
   );
 
+  // FORCE CUSTOM TEAM NAME PROMPT (Must be before eventStatus blocks so they can register early!)
+  if (!teamData.hasCustomName) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
+        <form className="glass-dark border border-blue-500/30 p-8 rounded-3xl w-full max-w-sm" onSubmit={async (e) => {
+          e.preventDefault();
+          if (!customName.trim()) return;
+          setSubmittingName(true);
+          try {
+             await updateDoc(doc(db, 'Teams', currentUser.uid), {
+                teamName: customName.trim(),
+                hasCustomName: true
+             });
+          } catch(err) {
+             console.error(err);
+             alert("Failed to update name");
+          }
+          setSubmittingName(false);
+        }}>
+          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-500 mb-4 text-center">Set Your Team Name</h2>
+          <p className="text-slate-400 text-sm mb-6 text-center">Choose a unique squad name to represent your team on the live leaderboard.</p>
+          <input 
+            type="text"
+            required
+            className="w-full px-4 py-3 bg-black/50 border border-slate-700 rounded-xl text-white mb-6 focus:ring-2 focus:ring-blue-500 outline-none"
+            placeholder="e.g. The Cryptic Coders"
+            maxLength={25}
+            value={customName}
+            onChange={(e) => setCustomName(e.target.value)}
+          />
+          <button disabled={submittingName} type="submit" className="w-full bg-blue-600 hover:bg-blue-500 font-bold py-3 rounded-xl text-white transition-all shadow-lg shadow-blue-500/20">
+             {submittingName ? 'Saving...' : 'Start Adventure'}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   if (eventStatus === 'pending') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-center">
