@@ -27,6 +27,7 @@ export default function ParticipantPortal() {
 
   // Global Event State
   const [eventStatus, setEventStatus] = useState('pending');
+  const [activePuzzle, setActivePuzzle] = useState(null);
 
   useEffect(() => {
     if (!currentUser) {
@@ -191,7 +192,6 @@ export default function ParticipantPortal() {
     }
   };
 
-  const [activePuzzle, setActivePuzzle] = useState(null);
 
   const handleScan = async (scannedText) => {
     setShowScanner(false);
