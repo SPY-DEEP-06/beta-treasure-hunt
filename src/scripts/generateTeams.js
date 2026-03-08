@@ -11,13 +11,16 @@ export const createTeams = async () => {
   const teams = [];
   const errors = [];
   
+  // Generate a random 4-char batch ID so multiple clicks don't collide with existing emails in Firebase Auth
+  const batchId = Math.random().toString(36).slice(-4);
+  
   // Create 45 Teams with a small delay to avoid Firebase Auth rate limits
   for (let i = 1; i <= 45; i++) {
-    // Add a 200ms delay between each user creation
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Add a 300ms delay between each user creation
+    await new Promise(resolve => setTimeout(resolve, 300));
     const teamNumber = i.toString().padStart(2, '0');
     const teamName = `Team${teamNumber}`;
-    const email = `${teamName}@beta.com`;
+    const email = `team${teamNumber}-${batchId}@beta.com`;
     const password = generatePassword();
     
     try {
