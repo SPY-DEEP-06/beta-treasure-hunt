@@ -171,25 +171,25 @@ export default function AdminPortal() {
 
       {generatedTeams && (
         <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4 backdrop-blur-md">
-          <div className="bg-slate-900 border border-purple-500/50 rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl shadow-purple-500/20">
-            <h2 className="text-2xl font-black text-emerald-400 mb-2">Teams Generated Successfully!</h2>
-            <p className="text-slate-300 mb-6 text-sm">A CSV backup has also been downloaded to your computer. Present these credentials to your participants manually so they can log in.</p>
+          <div className="bg-slate-900 border border-purple-500/50 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl shadow-purple-500/20">
+            <h2 className="text-xl md:text-2xl font-black text-emerald-400 mb-2">Teams Generated Successfully!</h2>
+            <p className="text-slate-300 mb-6 text-xs md:text-sm">A CSV backup has also been downloaded to your computer. Present these credentials to your participants manually so they can log in.</p>
             
-            <div className="flex-1 overflow-auto bg-black/50 rounded-xl p-4 mb-6 border border-slate-800">
-              <table className="w-full text-left font-mono text-sm">
+            <div className="flex-1 overflow-x-auto bg-black/50 rounded-xl p-4 mb-6 border border-slate-800 min-h-[300px]">
+              <table className="w-full text-left font-mono text-xs md:text-sm min-w-[400px]">
                  <thead>
                    <tr className="text-slate-500 border-b border-slate-800">
-                     <th className="pb-3 px-2">ID</th>
-                     <th className="pb-3 px-2">Login Email</th>
-                     <th className="pb-3 px-2">Password</th>
+                     <th className="pb-3 px-2 whitespace-nowrap">ID</th>
+                     <th className="pb-3 px-2 whitespace-nowrap">Login Email</th>
+                     <th className="pb-3 px-2 whitespace-nowrap relative">Password <span className="absolute -top-1 right-0 text-[10px] text-pink-500/50">case-sensitive</span></th>
                    </tr>
                  </thead>
                  <tbody>
                    {generatedTeams.map(t => (
-                     <tr key={t.email} className="border-b border-slate-800/50 hover:bg-slate-800/50">
+                     <tr key={t.email} className="border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors">
                        <td className="py-3 px-2 text-slate-300">{t.teamName}</td>
                        <td className="py-3 px-2 text-emerald-400">{t.email}</td>
-                       <td className="py-3 px-2 text-pink-400 tracking-wider">{t.password}</td>
+                       <td className="py-3 px-2 text-pink-400 tracking-widest font-bold">{t.password}</td>
                      </tr>
                    ))}
                  </tbody>
@@ -198,7 +198,7 @@ export default function AdminPortal() {
 
             <button 
               onClick={() => setGeneratedTeams(null)} 
-              className="w-full py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-white transition border border-slate-700"
+              className="w-full py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-white transition border border-slate-700 flex items-center justify-center gap-2"
             >
               Close & Return to Dashboard
             </button>

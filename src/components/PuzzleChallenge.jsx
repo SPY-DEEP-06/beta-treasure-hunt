@@ -5,7 +5,7 @@ export default function PuzzleChallenge({ onSolve, puzzleType = 'caesar' }) {
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
 
-  const puzzles = {
+  const allPuzzles = {
     caesar: {
       title: 'Decryption Required',
       desc: 'Decode the message: QEB NRFZH YOLTK CLU GRJMP LSBO QEB IXWV ALD (Hint: Caesar Shift -3)',
@@ -29,7 +29,7 @@ export default function PuzzleChallenge({ onSolve, puzzleType = 'caesar' }) {
     }
   };
 
-  const puzzle = puzzles[puzzleType] || puzzles['caesar'];
+  const puzzle = allPuzzles[puzzleType] || allPuzzles['caesar'];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -42,9 +42,9 @@ export default function PuzzleChallenge({ onSolve, puzzleType = 'caesar' }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-6 backdrop-blur-md">
-      <div className="w-full max-w-sm glass-dark p-8 rounded-3xl text-center shadow-2xl border border-blue-500/30">
-        <div className="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
+    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4 sm:p-6 backdrop-blur-md">
+      <div className="w-full max-w-sm glass-dark p-6 sm:p-8 rounded-3xl text-center shadow-2xl border border-blue-500/30">
+        <div className="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
           <Key size={32} />
         </div>
         <h2 className="text-2xl font-black text-white mb-2 uppercase tracking-widest">{puzzle.title}</h2>
