@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 
 const AuthContext = createContext();
@@ -28,24 +28,31 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    let unsubDoc;
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        // Fetch team progress from Firestore
+        // Listen to team progress from Firestore in real-time
         const teamDocRef = doc(db, 'Teams', user.uid);
-        const teamDoc = await getDoc(teamDocRef);
-        if (teamDoc.exists()) {
-          setTeamData({ id: teamDoc.id, ...teamDoc.data() });
-        } else {
-          setTeamData(null);
-        }
+        unsubDoc = onSnapshot(teamDocRef, (teamDoc) => {
+          if (teamDoc.exists()) {
+            setTeamData({ id: teamDoc.id, ...teamDoc.data() });
+          } else {
+            setTeamData(null);
+          }
+          setLoading(false); // Only stop loading auth state once we have the DB state checked
+        });
       } else {
         setTeamData(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      if (unsubDoc) unsubDoc();
+    };
   }, []);
 
   const value = {
