@@ -206,13 +206,16 @@ export default function ParticipantPortal() {
     );
   }
 
-  const isFinished = teamData.currentClueIndex >= teamData.path.length;
-  const currentTargetId = !isFinished ? teamData.path[teamData.currentClueIndex] : null;
+  const pathLength = teamData.path ? teamData.path.length : 25;
+  const currentClueIndex = teamData.currentClueIndex || 0;
+  
+  const isFinished = currentClueIndex >= pathLength;
+  const currentTargetId = !isFinished && teamData.path ? teamData.path[currentClueIndex] : null;
   const currentClue = currentTargetId ? eventLocations.find(l => l.id === currentTargetId) : null;
 
   // We enforce initial riddle only if they haven't advanced past clue 0 AND haven't passed in this session
   // In a robust implementation, 'riddlePassed' would be persisted in Firebase. For brevity, if index > 0, they passed.
-  const needsInitialRiddle = teamData.currentClueIndex === 0 && !riddlePassed;
+  const needsInitialRiddle = currentClueIndex === 0 && !riddlePassed;
 
   const handleRiddleSubmit = (e) => {
     e.preventDefault();
@@ -237,13 +240,13 @@ export default function ParticipantPortal() {
     }
 
     if (scannedId === currentTargetId) {
-      if (teamData.currentClueIndex === 5) {
+      if (currentClueIndex === 5) {
         setActivePuzzle('caesar');
-      } else if (teamData.currentClueIndex === 10) {
+      } else if (currentClueIndex === 10) {
         setActivePuzzle('rsa');
-      } else if (teamData.currentClueIndex === 15) {
+      } else if (currentClueIndex === 15) {
         setActivePuzzle('frequency');
-      } else if (teamData.currentClueIndex === 20) {
+      } else if (currentClueIndex === 20) {
         setActivePuzzle('passcode');
       } else {
         await proceedWithClue(scannedId);
@@ -256,7 +259,7 @@ export default function ParticipantPortal() {
 
   const proceedWithClue = async (scannedId) => {
     alert("Location found! Proceeding to next clue.");
-    await advanceClue(currentUser.uid, teamData.currentClueIndex, currentTargetId);
+    await advanceClue(currentUser.uid, currentClueIndex, currentTargetId);
     await logScan(currentUser.uid, scannedId, 'success');
     setActivePuzzle(null);
   };
@@ -306,10 +309,10 @@ export default function ParticipantPortal() {
         </h1>
         <div className="flex items-center gap-3">
           <div className="text-xs font-bold px-3 py-1.5 bg-slate-800 text-slate-300 rounded-full border border-slate-700">
-            {teamData.currentClueIndex} / {teamData.path.length}
+            {currentClueIndex} / {pathLength}
           </div>
           <div className="text-sm font-bold px-4 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg shadow-blue-500/20">
-            {teamData.teamName}
+            {teamData.teamName || 'Team'}
           </div>
         </div>
       </header>
@@ -345,7 +348,7 @@ export default function ParticipantPortal() {
               <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/10 blur-[50px]"></div>
               <h2 className="text-sm font-bold text-emerald-400 mb-2 uppercase tracking-wider">Current Clue</h2>
               <p className="text-2xl font-medium text-white leading-snug mb-8">
-                "{currentClue?.clue}"
+                "{currentClue?.clue || 'Loading... Please wait for synchronization.'}"
               </p>
               <button 
                 onClick={() => setShowScanner(true)}

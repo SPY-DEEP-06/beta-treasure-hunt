@@ -1,23 +1,25 @@
 import { doc, getDoc, updateDoc, setDoc, query, collection, where, getDocs, onSnapshot, arrayUnion } from 'firebase/firestore';
 import { db } from './config';
 
-// Initialize a team's start state if not already set
+// Initialize a team's start state if not already set or heal missing paths
 export const initializeTeamState = async (teamId, teamName) => {
   const teamRef = doc(db, 'Teams', teamId);
   const snap = await getDoc(teamRef);
   
-  if (!snap.exists() || !snap.data().teamName) {
+  const data = snap.exists() ? snap.data() : null;
+  
+  if (!data || !data.teamName || !data.path) {
     // Determine path randomizer if not set
     const defaultPath = Array.from({length: 23}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
     defaultPath.push(24, 25); // 24 and 25 are fixed at the end
 
     await setDoc(teamRef, {
-      teamName: teamName,
-      currentClueIndex: 0,
-      path: defaultPath,
-      completedClues: [],
-      lastActive: new Date().toISOString(),
-      score: 0
+      teamName: data?.teamName || teamName,
+      currentClueIndex: data?.currentClueIndex || 0,
+      path: data?.path || defaultPath,
+      completedClues: data?.completedClues || [],
+      lastActive: data?.lastActive || new Date().toISOString(),
+      score: data?.score || 0
     }, { merge: true });
   }
 };
