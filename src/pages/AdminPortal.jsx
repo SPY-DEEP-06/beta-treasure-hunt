@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { createTeams } from '../scripts/generateTeams';
 import AdminLogin from './AdminLogin';
-import { updateGpsSettings, listenToGpsSettings } from '../firebase/db';
+import { updateGpsSettings, listenToGpsSettings, updateEventState, listenToEventState } from '../firebase/db';
 
 export default function AdminPortal() {
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [gpsEnabled, setGpsEnabled] = useState(false);
+  const [eventStatus, setEventStatus] = useState('pending');
 
   useEffect(() => {
     if (isAuthenticated) {
-      const unsub = listenToGpsSettings((enabled) => {
+      const unsubGps = listenToGpsSettings((enabled) => {
         setGpsEnabled(enabled);
       });
-      return () => unsub();
+      const unsubEvent = listenToEventState((status) => {
+        setEventStatus(status);
+      });
+      return () => {
+        unsubGps();
+        unsubEvent();
+      };
     }
   }, [isAuthenticated]);
   
@@ -39,9 +46,24 @@ export default function AdminPortal() {
         <div className="glass p-6 rounded-xl">
           <h2 className="text-xl font-semibold mb-4 text-emerald-400">Event Controls</h2>
           <div className="flex space-x-4 mb-6">
-            <button className="px-4 py-2 bg-emerald-600 rounded">Start Event</button>
-            <button className="px-4 py-2 bg-yellow-600 rounded">Pause</button>
-            <button className="px-4 py-2 bg-red-600 rounded">Stop</button>
+            <button 
+              onClick={() => updateEventState('active')}
+              className={`px-4 py-2 rounded transition-colors ${eventStatus === 'active' ? 'bg-emerald-500 font-bold ring-2 ring-emerald-300' : 'bg-emerald-700 hover:bg-emerald-600'}`}
+            >
+              Start Event
+            </button>
+            <button 
+              onClick={() => updateEventState('paused')}
+              className={`px-4 py-2 rounded transition-colors ${eventStatus === 'paused' ? 'bg-yellow-500 font-bold ring-2 ring-yellow-300' : 'bg-yellow-700 hover:bg-yellow-600'}`}
+            >
+              Pause
+            </button>
+            <button 
+              onClick={() => updateEventState('stopped')}
+              className={`px-4 py-2 rounded transition-colors ${eventStatus === 'stopped' ? 'bg-red-500 font-bold ring-2 ring-red-300' : 'bg-red-700 hover:bg-red-600'}`}
+            >
+              Stop
+            </button>
           </div>
 
           <div className="p-4 bg-slate-800/50 rounded-lg flex items-center justify-between border border-slate-700">

@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { eventLocations } from '../data/clues';
 import QRScanner from '../components/QRScanner';
-import { advanceClue, logScan, listenToGpsSettings, updateTeamLocation } from '../firebase/db';
+import { advanceClue, logScan, listenToGpsSettings, updateTeamLocation, listenToEventState } from '../firebase/db';
 import { QrCode, MapPin } from 'lucide-react';
 import PuzzleChallenge from '../components/PuzzleChallenge';
 
@@ -19,11 +19,21 @@ export default function ParticipantPortal() {
   const [gpsRequired, setGpsRequired] = useState(false);
   const [locationAvailable, setLocationAvailable] = useState(false);
 
+  // Global Event State
+  const [eventStatus, setEventStatus] = useState('pending');
+
   useEffect(() => {
     if (!currentUser) {
       navigate('/login');
     }
   }, [currentUser, navigate]);
+
+  useEffect(() => {
+    const unsubEvent = listenToEventState((status) => {
+      setEventStatus(status);
+    });
+    return () => unsubEvent();
+  }, []);
 
   // GPS Settings & Tracking Effect
   useEffect(() => {
@@ -76,10 +86,43 @@ export default function ParticipantPortal() {
   }, [currentUser, teamData]);
 
   if (!currentUser || !teamData) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-slate-900">
       <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
     </div>
   );
+
+  if (eventStatus === 'pending') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-center">
+        <h1 className="text-3xl font-black text-white mb-4 animate-pulse">Event Starting Soon</h1>
+        <p className="text-slate-400">Please wait for the organizers to begin the treasure hunt.</p>
+      </div>
+    );
+  }
+
+  if (eventStatus === 'paused') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-center">
+        <h1 className="text-3xl font-black text-yellow-400 mb-4">Event Paused</h1>
+        <p className="text-slate-400">The game has been temporarily paused by the organizers.</p>
+      </div>
+    );
+  }
+
+  if (eventStatus === 'stopped') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-center">
+        <h1 className="text-3xl font-black text-red-500 mb-4">Event Ended</h1>
+        <p className="text-slate-400">The treasure hunt is now over. Please check the Leaderboard or return to the Seminar Hall!</p>
+        <button 
+          onClick={() => navigate('/leaderboard')}
+          className="mt-6 px-6 py-3 bg-red-600 font-bold rounded-xl text-white shadow-lg shadow-red-500/20"
+        >
+          View Leaderboard
+        </button>
+      </div>
+    );
+  }
 
   const isFinished = teamData.currentClueIndex >= teamData.path.length;
   const currentTargetId = !isFinished ? teamData.path[teamData.currentClueIndex] : null;

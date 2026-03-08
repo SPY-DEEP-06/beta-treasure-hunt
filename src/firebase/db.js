@@ -111,3 +111,20 @@ export const listenToTeamLocations = (callback) => {
   });
 };
 
+// Event State Helpers
+export const listenToEventState = (callback) => {
+  return onSnapshot(doc(db, 'Settings', 'eventState'), (docSnap) => {
+    if (docSnap.exists()) {
+      callback(docSnap.data().status || 'pending');
+    } else {
+      callback('pending');
+    }
+  });
+};
+
+export const updateEventState = async (status) => {
+  const stateRef = doc(db, 'Settings', 'eventState');
+  await setDoc(stateRef, { status }, { merge: true });
+};
+
+
