@@ -48,16 +48,10 @@ export default function LiveCampusMap({ teamsData }) {
         center={center}
         zoom={16}
         options={{
-          styles: [
-            { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-            { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
-            { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
-            { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-          ],
-          disableDefaultUI: true,
+          mapTypeId: 'satellite',
+          disableDefaultUI: false,
           zoomControl: true,
+          mapTypeControl: true,
         }}
       >
         <MarkerClusterer>
