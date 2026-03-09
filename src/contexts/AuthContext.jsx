@@ -50,7 +50,9 @@ export function AuthProvider({ children }) {
             
             setTeamData({ id: teamDoc.id, ...data });
           } else {
-            setTeamData(null);
+            // Document completely missing (corrupted or deleted manually). Recreate it instantly.
+            await initializeTeamState(teamDoc.id, `Team_${teamDoc.id.substring(0,4)}`);
+            return;
           }
           setLoading(false); // Only stop loading auth state once we have the DB state checked
         });

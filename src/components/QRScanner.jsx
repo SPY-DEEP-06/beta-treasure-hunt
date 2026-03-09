@@ -7,23 +7,37 @@ export default function QRScanner({ onScan, onClose }) {
   useEffect(() => {
     const html5QrCode = new Html5Qrcode("qr-reader");
 
-    html5QrCode.start(
-      { facingMode: "environment" }, // Instantly target the rear camera
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 250 }
-      },
-      (decodedText) => {
-        // On Success
-        html5QrCode.stop().then(() => {
-          onScan(decodedText);
-        }).catch(console.error);
-      },
-      (errorMessage) => {
-        // Ignore constant scanning errors (e.g. when nothing is in frame)
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        // Attempt to smartly select the rear camera
+        let cameraId = devices[devices.length - 1].id; 
+        for (const device of devices) {
+          if (device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('environment')) {
+            cameraId = device.id;
+            break;
+          }
+        }
+        
+        html5QrCode.start(
+          cameraId,
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+          },
+          (decodedText) => {
+            html5QrCode.stop().then(() => {
+              onScan(decodedText);
+            }).catch(console.error);
+          },
+          (err) => {} // ignore frame errors
+        ).catch((err) => {
+          console.error(err);
+          setError("Failed to mount hardware camera. Grant permissions and try again.");
+        });
+      } else {
+        setError("No cameras physically found on this device.");
       }
-    ).catch((err) => {
-      console.error(err);
+    }).catch(err => {
       setError("Please grant camera permissions to scan clues.");
     });
 
