@@ -1,22 +1,26 @@
 import { doc, getDoc, updateDoc, setDoc, query, collection, where, getDocs, onSnapshot, arrayUnion } from 'firebase/firestore';
 import { db } from './config';
 
-// Initialize a team's start state if not already set or heal missing paths
+// Initialize a team's start state if not already set or heal missing/incorrect paths
 export const initializeTeamState = async (teamId, teamName) => {
   const teamRef = doc(db, 'Teams', teamId);
   const snap = await getDoc(teamRef);
   
   const data = snap.exists() ? snap.data() : null;
   
-  if (!data || !data.teamName || !data.path) {
-    // Determine path randomizer if not set
-    const defaultPath = Array.from({length: 23}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
-    defaultPath.push(24, 25); // 24 and 25 are fixed at the end
+  // Validate that path is exactly 7 clues long and ends at 13 (Seminar Hall)
+  const hasValidPath = data && Array.isArray(data.path) && data.path.length === 7 && data.path[6] === 13;
+  
+  if (!data || !data.teamName || !hasValidPath) {
+    // Generate a new 7-length path (6 random moderate/hard clues + 13)
+    const cluePool = [2, 3, 7, 8, 10, 11, 14, 15, 17, 18, 19, 21, 23, 25];
+    const shuffledPool = cluePool.sort(() => Math.random() - 0.5);
+    const defaultPath = [...shuffledPool.slice(0, 6), 13];
 
     await setDoc(teamRef, {
       teamName: data?.teamName || teamName,
       currentClueIndex: data?.currentClueIndex || 0,
-      path: data?.path || defaultPath,
+      path: defaultPath,
       completedClues: data?.completedClues || [],
       lastActive: data?.lastActive || new Date().toISOString(),
       score: data?.score || 0

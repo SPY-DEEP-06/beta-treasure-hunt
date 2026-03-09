@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
+import { initializeTeamState } from '../firebase/db';
 
 const AuthContext = createContext();
 
@@ -39,9 +40,9 @@ export function AuthProvider({ children }) {
           if (teamDoc.exists()) {
             const data = teamDoc.data();
             
-            // Critical Auto-Heal: If the active session is a legacy account missing its path, fix it in the DB instantly.
-            if (!data.path || !Array.isArray(data.path) || data.path.length === 0) {
-              const { initializeTeamState } = await import('../firebase/db');
+            // Critical Auto-Heal: If the active session is a legacy account or lacks the exact 7-clue format, heal it instantly.
+            const hasValidPath = data.path && Array.isArray(data.path) && data.path.length === 7 && data.path[6] === 13;
+            if (!hasValidPath) {
               await initializeTeamState(teamDoc.id, data.teamName || `Team_${teamDoc.id.substring(0,4)}`);
               // The setDoc inside initializeTeamState will immediately trigger this onSnapshot again.
               return;

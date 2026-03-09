@@ -171,7 +171,7 @@ export default function ParticipantPortal() {
 
 
 
-  const pathLength = teamData.path ? teamData.path.length : 25;
+  const pathLength = teamData.path ? teamData.path.length : 7;
   const currentClueIndex = teamData.currentClueIndex || 0;
   
   const isFinished = currentClueIndex >= pathLength;
@@ -204,13 +204,11 @@ export default function ParticipantPortal() {
     }
 
     if (scannedId === currentTargetId) {
-      if (currentClueIndex === 5) {
+      if (currentClueIndex === 2) {
         setActivePuzzle('caesar');
-      } else if (currentClueIndex === 10) {
+      } else if (currentClueIndex === 4) {
         setActivePuzzle('rsa');
-      } else if (currentClueIndex === 15) {
-        setActivePuzzle('frequency');
-      } else if (currentClueIndex === 20) {
+      } else if (currentClueIndex === 5) {
         setActivePuzzle('passcode');
       } else {
         await proceedWithClue(scannedId);

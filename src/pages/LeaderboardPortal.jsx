@@ -53,10 +53,10 @@ export default function LeaderboardPortal() {
                     {index > 2 && <span className="text-xl font-bold text-slate-400">#{index + 1}</span>}
                   </td>
                   <td className="p-4 font-bold text-lg text-white">{team.teamName}</td>
-                  <td className="p-4 text-emerald-400 font-medium whitespace-nowrap">Clue {team.currentClueIndex} / 25</td>
+                  <td className="p-4 text-emerald-400 font-medium whitespace-nowrap">Clue {team.currentClueIndex} / 7</td>
                   <td className="p-4 w-48">
                     <div className="w-full bg-slate-800 rounded-full h-3 border border-slate-700">
-                      <div className="bg-gradient-to-r from-blue-500 to-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${(team.currentClueIndex / 25) * 100}%` }}></div>
+                      <div className="bg-gradient-to-r from-blue-500 to-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${(team.currentClueIndex / 7) * 100}%` }}></div>
                     </div>
                   </td>
                 </tr>

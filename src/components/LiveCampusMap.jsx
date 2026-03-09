@@ -34,8 +34,8 @@ export default function LiveCampusMap({ teamsData }) {
     if (!team) return 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
 
     // Different colors based on progress
-    if (team.currentClueIndex >= 25) return 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
-    if (team.currentClueIndex >= 23) return 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+    if (team.currentClueIndex >= 7) return 'http://maps.google.com/mapfiles/ms/icons/green-dot.png';
+    if (team.currentClueIndex >= 5) return 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
     return 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png';
   };
 

@@ -146,7 +146,7 @@ export default function AdminPortal() {
                   <tr key={team.id} className="border-b border-slate-700/50 hover:bg-slate-800/50">
                     <td className="p-3 font-bold text-slate-300">#{index + 1}</td>
                     <td className="p-3 font-semibold text-white">{team.teamName}</td>
-                    <td className="p-3 text-emerald-400">{team.currentClueIndex} / 25</td>
+                    <td className="p-3 text-emerald-400">{team.currentClueIndex} / 7</td>
                   </tr>
                 ))}
               </tbody>
