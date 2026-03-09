@@ -29,7 +29,11 @@ export const eventLocations = [
 
 export const initialRiddles = [
   { question: "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", answer: "echo" },
-  { question: "I go in hard, come out soft. You blow me hard. What am I?", answer: "gum" } // Let's use standard ones
+  { question: "I have keys but no locks. I have space but no room. You can enter but can't go outside. What am I?", answer: "keyboard" },
+  { question: "I am tall when I'm young, and I'm short when I'm old. What am I?", answer: "candle" },
+  { question: "What has hands but cannot clap?", answer: "clock" },
+  { question: "The more of this there is, the less you see. What is it?", answer: "darkness" },
+  { question: "What has words, but never speaks?", answer: "book" }
 ];
 
 export const getClueForLocation = (locationId) => {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { eventLocations } from '../data/clues';
+import { eventLocations, initialRiddles } from '../data/clues';
 import QRScanner from '../components/QRScanner';
 import { advanceClue, logScan, listenToGpsSettings, updateTeamLocation, listenToEventState } from '../firebase/db';
 import { QrCode, MapPin } from 'lucide-react';
@@ -181,10 +181,13 @@ export default function ParticipantPortal() {
   // We enforce initial riddle only if they haven't advanced past clue 0 AND haven't passed in this session
   // In a robust implementation, 'riddlePassed' would be persisted in Firebase. For brevity, if index > 0, they passed.
   const needsInitialRiddle = currentClueIndex === 0 && !riddlePassed;
+  
+  const teamRiddleIndex = teamData.initialRiddleIndex ?? 0;
+  const currentInitialRiddle = initialRiddles[teamRiddleIndex] || initialRiddles[0];
 
   const handleRiddleSubmit = (e) => {
     e.preventDefault();
-    if (riddleAnswer.toLowerCase().trim() === 'echo') {
+    if (riddleAnswer.toLowerCase().trim() === currentInitialRiddle.answer) {
       setRiddlePassed(true);
       setRiddleError('');
     } else {
@@ -288,7 +291,7 @@ export default function ParticipantPortal() {
             <h2 className="text-xl font-bold mb-2">Gate Riddle</h2>
             <p className="text-slate-300 mb-6 leading-relaxed">
               Before your journey begins, prove your wit:<br/><br/>
-              <span className="italic text-white">"I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?"</span>
+              <span className="italic text-white">"{currentInitialRiddle.question}"</span>
             </p>
             <form onSubmit={handleRiddleSubmit} className="space-y-4">
               <input

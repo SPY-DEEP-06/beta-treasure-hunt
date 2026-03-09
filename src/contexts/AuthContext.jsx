@@ -42,7 +42,9 @@ export function AuthProvider({ children }) {
             
             // Critical Auto-Heal: If the active session is a legacy account or lacks the exact 7-clue format, heal it instantly.
             const hasValidPath = data.path && Array.isArray(data.path) && data.path.length === 7 && data.path[6] === 13;
-            if (!hasValidPath) {
+            const hasRiddleIndex = typeof data.initialRiddleIndex === 'number';
+            
+            if (!hasValidPath || !hasRiddleIndex) {
               await initializeTeamState(teamDoc.id, data.teamName || `Team_${teamDoc.id.substring(0,4)}`);
               // The setDoc inside initializeTeamState will immediately trigger this onSnapshot again.
               return;
