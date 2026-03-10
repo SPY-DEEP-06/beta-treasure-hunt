@@ -5,21 +5,41 @@ export default function PuzzleChallenge({ onSolve, puzzleType = 'caesar' }) {
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
 
-  const puzzles = {
+  const allPuzzles = {
     caesar: {
       title: 'Decryption Required',
       desc: 'Decode the message: QEB NRFZH YOLTK CLU GRJMP LSBO QEB IXWV ALD (Hint: Caesar Shift -3)',
       correctFunc: (ans) => ans.toLowerCase().replace(/[^a-z]/g, '') === 'thequickbrownfoxjumpsoverthelazydog'
+    },
+    finalCipherPhase1: {
+      title: 'Final Node Detected',
+      desc: 'Decrypt the transmission to reveal the final directive: "Uifsf jt pof mbtu opef." (Key: -1)',
+      correctFunc: (ans) => ans.toLowerCase().replace(/[^a-z\s]/g, '').trim() === 'there is one last node'
+    },
+    finalCipherPhase2: {
+      title: 'Origin Protocol',
+      desc: 'Decrypt the secondary transmission: "ilqlvk zkhuh brx vwduwhg" (Key: +3)',
+      correctFunc: (ans) => ans.toLowerCase().replace(/[^a-z\s]/g, '').trim() === 'finish where you started'
     },
     frequency: {
       title: 'Frequency Match',
       desc: 'Set the slider to the optimal resonance frequency (75Hz) to bypass the lock.',
       isSlider: true,
       correctFunc: (ans) => parseInt(ans) >= 73 && parseInt(ans) <= 77
+    },
+    rsa: {
+      title: 'RSA Intercept',
+      desc: 'Given p=3, q=11, and e=7, find the modulus N to compute the public key (N = p * q).',
+      correctFunc: (ans) => ans.trim() === '33'
+    },
+    passcode: {
+      title: 'Override Cipher',
+      desc: 'Enter the 4-digit Master Override Passcode to continue (Hint: Root of 144, multiplied by 100, plus 34).',
+      correctFunc: (ans) => ans.trim() === '1234'
     }
   };
 
-  const puzzle = puzzles[puzzleType] || puzzles['caesar'];
+  const puzzle = allPuzzles[puzzleType] || allPuzzles['caesar'];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -32,9 +52,9 @@ export default function PuzzleChallenge({ onSolve, puzzleType = 'caesar' }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-6 backdrop-blur-md">
-      <div className="w-full max-w-sm glass-dark p-8 rounded-3xl text-center shadow-2xl border border-blue-500/30">
-        <div className="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
+    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4 sm:p-6 backdrop-blur-md">
+      <div className="w-full max-w-sm glass-dark p-6 sm:p-8 rounded-3xl text-center shadow-2xl border border-blue-500/30">
+        <div className="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
           <Key size={32} />
         </div>
         <h2 className="text-2xl font-black text-white mb-2 uppercase tracking-widest">{puzzle.title}</h2>

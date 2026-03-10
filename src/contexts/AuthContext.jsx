@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
+import { initializeTeamState } from '../firebase/db';
+import { teamCredentials } from '../data/teamCredentials';
 
 const AuthContext = createContext();
 
@@ -19,35 +21,85 @@ export function AuthProvider({ children }) {
     return signInWithEmailAndPassword(auth, email, password);
   }
 
+  async function signup(email, password) {
+    return createUserWithEmailAndPassword(auth, email, password);
+  }
+
   function logout() {
     return signOut(auth);
   }
 
   useEffect(() => {
+    let unsubDoc;
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
+
       if (user) {
-        // Fetch team progress from Firestore
-        const teamDocRef = doc(db, 'Teams', user.uid);
-        const teamDoc = await getDoc(teamDocRef);
-        if (teamDoc.exists()) {
-          setTeamData({ id: teamDoc.id, ...teamDoc.data() });
-        } else {
+
+        // Critical Security Check: Ensure the active session matches our hardcoded approved credentials or the admin.
+        const isAdminSession = user.email?.toLowerCase() === 'admin@beta.com';
+        const isAuthorizedSession = teamCredentials.some(
+          cred => cred.email.toLowerCase() === user.email?.toLowerCase()
+        );
+
+        if (!isAuthorizedSession && !isAdminSession) {
+          console.warn("Unauthorized cached session detected. Logging out.");
+          await signOut(auth);
+          setCurrentUser(null);
           setTeamData(null);
+          setLoading(false);
+          return;
         }
+
+        setCurrentUser(user);
+
+        // Do not initialize a Team profile for the Event Admin
+        if (isAdminSession) {
+          setTeamData(null);
+          setLoading(false);
+          return;
+        }
+
+        // Listen to team progress from Firestore in real-time
+        const teamDocRef = doc(db, 'Teams', user.uid);
+        unsubDoc = onSnapshot(teamDocRef, async (teamDoc) => {
+          if (teamDoc.exists()) {
+            const data = teamDoc.data();
+
+            // Critical Auto-Heal: If the active session is a legacy account or lacks the exact new 7-clue format, heal it instantly.
+            const hasValidPath = data.path && Array.isArray(data.path) && data.path.length === 7 && data.path[5] === 24 && data.path[6] === 25;
+
+            if (!hasValidPath) {
+              await initializeTeamState(teamDoc.id, data.teamName || user.email.split('@')[0]);
+              // The setDoc inside initializeTeamState will immediately trigger this onSnapshot again.
+              return;
+            }
+
+            setTeamData({ id: teamDoc.id, ...data });
+          } else {
+            // Document completely missing (corrupted or deleted manually). Recreate it instantly.
+            await initializeTeamState(teamDoc.id, user.email.split('@')[0]);
+            return;
+          }
+          setLoading(false); // Only stop loading auth state once we have the DB state checked
+        });
       } else {
         setTeamData(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      if (unsubDoc) unsubDoc();
+    };
   }, []);
 
   const value = {
     currentUser,
     teamData,
     login,
+    signup,
     logout,
     loading
   };

@@ -17,3 +17,23 @@
     @apply bg-black/40 backdrop-blur-lg border border-white/10 shadow-2xl;
   }
 }
+
+/* Override html5-qrcode default ugly buttons for mobile apps */
+#qr-reader button {
+  background-color: #2563eb !important;
+  color: white !important;
+  font-weight: bold !important;
+  border-radius: 0.5rem !important;
+  padding: 0.5rem 1rem !important;
+  border: none !important;
+  margin-top: 10px !important;
+  cursor: pointer !important;
+}
+
+#qr-reader__dashboard_section_csr span {
+  color: #94a3b8 !important;
+}
+
+#qr-reader a {
+  color: #60a5fa !important;
+}

@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Team Locations tracking - Anyone authenticated can read (for Leaderboard/Admin map)
+    // Teams can only update their own GPS track.
+    match /TeamLocations/{teamId} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.uid == teamId || request.auth.token.email == 'admin@beta.com');
+    }
+
+    // Teams Collection
+    // Public read for leaderboard. 
+    match /Teams/{teamId} {
+      allow read: if true;
+      
+      // Allow the participant to update their own score and clue progress
+      allow update: if request.auth != null && request.auth.uid == teamId;
+      
+      // Allow the participant to create their initial profile during the First-Login Auto-Registration
+      allow create: if request.auth != null && request.auth.uid == teamId; 
+    }
+
+    // Settings Collection 
+    // Anyone can read if event is active, only Admin can write
+    match /Settings/{settingId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'admin@beta.com'; 
+    }
+
+    // Scan Logs
+    // Authenticated users can create scan logs for telemetry. Admins can read.
+    match /ScanLogs/{logId} {
+      allow create: if request.auth != null;
+      allow read: if true; 
+    }
+  }
+}

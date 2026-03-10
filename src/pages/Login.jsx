@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { initializeTeamState } from '../firebase/db';
+import { teamCredentials } from '../data/teamCredentials';
 import { Lock } from 'lucide-react';
 
 export default function Login() {
@@ -9,7 +10,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -17,14 +18,44 @@ export default function Login() {
     try {
       setError('');
       setLoading(true);
-      const userCredential = await login(email, password);
-      // Initialize team state in db if first login
-      const teamName = email.split('@')[0]; // Simple fallback, or could prompt for custom team name
-      await initializeTeamState(userCredential.user.uid, teamName);
+
+      // Validate credentials against the hardcoded provided list
+      const isValidTeam = teamCredentials.find(
+        (cred) => cred.email.toLowerCase() === email.toLowerCase().trim() && cred.password === password
+      );
+
+      if (!isValidTeam) {
+        throw new Error('Unauthorized credentials. Please use the exact login details provided by the organizers.');
+      }
+
+      let userCredential;
+      try {
+        // First try to login
+        userCredential = await login(email, password);
+      } catch (loginError) {
+        // If user doesn't exist (invalid-credential groups user-not-found in modern auth)
+        // Try to create the account automatically!
+        if (loginError.code === 'auth/invalid-credential' || loginError.code === 'auth/user-not-found') {
+          try {
+            userCredential = await signup(email, password);
+            // Initialize team state in db for the FIRST time
+            const teamName = email.split('@')[0];
+            await initializeTeamState(userCredential.user.uid, teamName);
+          } catch (signupError) {
+            if (signupError.code === 'auth/email-already-in-use') {
+              throw new Error('Incorrect password.');
+            }
+            throw signupError;
+          }
+        } else {
+          throw loginError;
+        }
+      }
+
       navigate('/');
     } catch (err) {
-      setError('Failed to log in. Please check your credentials.');
-      console.error(err);
+      setError(err.message === 'Incorrect password.' ? 'Incorrect password. Try again.' : `Error: ${err.message || 'Unknown login error'}`);
+      console.error("Login Error Details:", err);
     } finally {
       setLoading(false);
     }
@@ -40,7 +71,7 @@ export default function Login() {
           <h2 className="text-3xl font-extrabold text-white">Team Login</h2>
           <p className="mt-2 text-sm text-slate-400">Beta Treasure Hunt</p>
         </div>
-        
+
         {error && (
           <div className="p-4 text-sm text-red-400 bg-red-500/10 border border-red-500/50 rounded-lg">
             {error}

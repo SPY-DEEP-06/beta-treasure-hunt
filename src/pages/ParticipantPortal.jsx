@@ -1,19 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { eventLocations } from '../data/clues';
 import QRScanner from '../components/QRScanner';
-import { advanceClue, logScan } from '../firebase/db';
+import { advanceClue, logScan, listenToGpsSettings, updateTeamLocation, listenToEventState, fetchClueFromDb } from '../firebase/db';
 import { QrCode, MapPin } from 'lucide-react';
 import PuzzleChallenge from '../components/PuzzleChallenge';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 export default function ParticipantPortal() {
   const { currentUser, teamData } = useAuth();
   const navigate = useNavigate();
   const [showScanner, setShowScanner] = useState(false);
-  const [riddleAnswer, setRiddleAnswer] = useState('');
-  const [riddleError, setRiddleError] = useState('');
-  const [riddlePassed, setRiddlePassed] = useState(false);
+  const [currentClueData, setCurrentClueData] = useState(null);
+  const [fetchingClue, setFetchingClue] = useState(false);
+  
+  // Custom Name Setup State
+  const [customName, setCustomName] = useState('');
+  const [submittingName, setSubmittingName] = useState(false);
+  
+  // GPS Tracking State
+  const [gpsRequired, setGpsRequired] = useState(false);
+  const [locationAvailable, setLocationAvailable] = useState(false);
+
+  // Global Event State
+  const [eventStatus, setEventStatus] = useState('pending');
+  const [activePuzzle, setActivePuzzle] = useState(null);
 
   useEffect(() => {
     if (!currentUser) {
@@ -21,31 +33,158 @@ export default function ParticipantPortal() {
     }
   }, [currentUser, navigate]);
 
+  useEffect(() => {
+    const unsubEvent = listenToEventState((status) => {
+      setEventStatus(status);
+    });
+    return () => unsubEvent();
+  }, []);
+
+  // GPS Settings & Tracking Effect
+  useEffect(() => {
+    if (!currentUser || !teamData) return;
+
+    let watchId;
+    let lastUpdate = 0;
+
+    const unsubscribeSettings = listenToGpsSettings((enabled) => {
+      setGpsRequired(enabled);
+      
+      if (enabled) {
+        if ("geolocation" in navigator) {
+          watchId = navigator.geolocation.watchPosition(
+            (position) => {
+              setLocationAvailable(true);
+              const now = Date.now();
+              // Throttle to 5 seconds
+              if (now - lastUpdate > 5000) {
+                lastUpdate = now;
+                updateTeamLocation(
+                  currentUser.uid, 
+                  teamData.teamName, 
+                  position.coords.latitude, 
+                  position.coords.longitude
+                );
+              }
+            },
+            (err) => {
+              console.error("GPS Error:", err);
+              setLocationAvailable(false);
+              updateTeamLocation(currentUser.uid, teamData.teamName, 0, 0, true);
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+          );
+        } else {
+          // Browser does not support Geolocation
+          setLocationAvailable(false);
+        }
+      } else {
+        if (watchId) navigator.geolocation.clearWatch(watchId);
+        setLocationAvailable(true); // Treat as available if not required
+      }
+    });
+
+    return () => {
+      unsubscribeSettings();
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [currentUser, teamData]);
+
   if (!currentUser || !teamData) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-slate-900">
       <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
     </div>
   );
 
-  const isFinished = teamData.currentClueIndex >= teamData.path.length;
-  const currentTargetId = !isFinished ? teamData.path[teamData.currentClueIndex] : null;
-  const currentClue = currentTargetId ? eventLocations.find(l => l.id === currentTargetId) : null;
+  // FORCE CUSTOM TEAM NAME PROMPT (Must be before eventStatus blocks so they can register early!)
+  if (!teamData.hasCustomName) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
+        <form className="glass-dark border border-blue-500/30 p-8 rounded-3xl w-full max-w-sm" onSubmit={async (e) => {
+          e.preventDefault();
+          if (!customName.trim()) return;
+          setSubmittingName(true);
+          try {
+             await updateDoc(doc(db, 'Teams', currentUser.uid), {
+                teamName: customName.trim(),
+                hasCustomName: true
+             });
+          } catch(err) {
+             console.error(err);
+             alert("Failed to update name");
+          }
+          setSubmittingName(false);
+        }}>
+          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-500 mb-4 text-center">Set Your Team Name</h2>
+          <p className="text-slate-400 text-sm mb-6 text-center">Choose a unique squad name to represent your team on the live leaderboard.</p>
+          <input 
+            type="text"
+            required
+            className="w-full px-4 py-3 bg-black/50 border border-slate-700 rounded-xl text-white mb-6 focus:ring-2 focus:ring-blue-500 outline-none"
+            placeholder="e.g. The Cryptic Coders"
+            maxLength={25}
+            value={customName}
+            onChange={(e) => setCustomName(e.target.value)}
+          />
+          <button disabled={submittingName} type="submit" className="w-full bg-blue-600 hover:bg-blue-500 font-bold py-3 rounded-xl text-white transition-all shadow-lg shadow-blue-500/20">
+             {submittingName ? 'Saving...' : 'Start Adventure'}
+          </button>
+        </form>
+      </div>
+    );
+  }
 
-  // We enforce initial riddle only if they haven't advanced past clue 0 AND haven't passed in this session
-  // In a robust implementation, 'riddlePassed' would be persisted in Firebase. For brevity, if index > 0, they passed.
-  const needsInitialRiddle = teamData.currentClueIndex === 0 && !riddlePassed;
+  if (eventStatus === 'pending') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-center">
+        <h1 className="text-3xl font-black text-white mb-4 animate-pulse">Event Starting Soon</h1>
+        <p className="text-slate-400">Please wait for the organizers to begin the treasure hunt.</p>
+      </div>
+    );
+  }
 
-  const handleRiddleSubmit = (e) => {
-    e.preventDefault();
-    if (riddleAnswer.toLowerCase().trim() === 'echo') {
-      setRiddlePassed(true);
-      setRiddleError('');
-    } else {
-      setRiddleError('Incorrect answer. Try again!');
+  if (eventStatus === 'paused') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-center">
+        <h1 className="text-3xl font-black text-yellow-400 mb-4">Event Paused</h1>
+        <p className="text-slate-400">The game has been temporarily paused by the organizers.</p>
+      </div>
+    );
+  }
+
+  if (eventStatus === 'stopped') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-center">
+        <h1 className="text-3xl font-black text-red-500 mb-4">Event Ended</h1>
+        <p className="text-slate-400">The treasure hunt is now over. Please check the Leaderboard or return to the Seminar Hall!</p>
+        <button 
+          onClick={() => navigate('/leaderboard')}
+          className="mt-6 px-6 py-3 bg-red-600 font-bold rounded-xl text-white shadow-lg shadow-red-500/20"
+        >
+          View Leaderboard
+        </button>
+      </div>
+    );
+  }
+
+
+
+  const pathLength = teamData.path ? teamData.path.length : 7;
+  const currentClueIndex = teamData.currentClueIndex || 0;
+  
+  const isFinished = currentClueIndex >= pathLength;
+  const currentTargetId = !isFinished && teamData.path ? teamData.path[currentClueIndex] : null;
+
+  useEffect(() => {
+    if (currentTargetId) {
+      setFetchingClue(true);
+      fetchClueFromDb(currentTargetId).then(data => {
+        setCurrentClueData(data);
+        setFetchingClue(false);
+      });
     }
-  };
+  }, [currentTargetId]);
 
-  const [activePuzzle, setActivePuzzle] = useState(null);
 
   const handleScan = async (scannedText) => {
     setShowScanner(false);
@@ -58,10 +197,14 @@ export default function ParticipantPortal() {
     }
 
     if (scannedId === currentTargetId) {
-      if (teamData.currentClueIndex === 5) {
+      if (scannedId === 25) {
+        setActivePuzzle('finalCipherPhase1');
+      } else if (currentClueIndex === 2) {
         setActivePuzzle('caesar');
-      } else if (teamData.currentClueIndex === 15) {
-        setActivePuzzle('frequency');
+      } else if (currentClueIndex === 4) {
+        setActivePuzzle('rsa');
+      } else if (currentClueIndex === 5) {
+        setActivePuzzle('passcode');
       } else {
         await proceedWithClue(scannedId);
       }
@@ -73,7 +216,7 @@ export default function ParticipantPortal() {
 
   const proceedWithClue = async (scannedId) => {
     alert("Location found! Proceeding to next clue.");
-    await advanceClue(currentUser.uid, teamData.currentClueIndex, currentTargetId);
+    await advanceClue(currentUser.uid, currentClueIndex, currentTargetId);
     await logScan(currentUser.uid, scannedId, 'success');
     setActivePuzzle(null);
   };
@@ -92,6 +235,26 @@ export default function ParticipantPortal() {
     );
   }
 
+  if (gpsRequired && !locationAvailable) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-center">
+        <div className="w-16 h-16 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mb-6 animate-pulse">
+          <MapPin size={32} />
+        </div>
+        <h1 className="text-2xl font-black text-white mb-2">Location Required</h1>
+        <p className="text-slate-400 mb-6">
+          Location access is required to participate in the treasure hunt. Please allow GPS permission in your browser to continue.
+        </p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-6 py-3 bg-red-600 font-bold rounded-xl text-white shadow-lg shadow-red-500/20"
+        >
+          I've granted permission (Reload)
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-4 flex flex-col items-center max-w-md mx-auto relative overflow-hidden">
       {/* Background decorations */}
@@ -103,65 +266,65 @@ export default function ParticipantPortal() {
         </h1>
         <div className="flex items-center gap-3">
           <div className="text-xs font-bold px-3 py-1.5 bg-slate-800 text-slate-300 rounded-full border border-slate-700">
-            {teamData.currentClueIndex} / {teamData.path.length}
+            {currentClueIndex} / {pathLength}
           </div>
           <div className="text-sm font-bold px-4 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg shadow-blue-500/20">
-            {teamData.teamName}
+            {teamData.teamName || 'Team'}
           </div>
         </div>
       </header>
 
       <main className="w-full flex-1 flex flex-col items-center justify-center z-10 w-full">
-        {needsInitialRiddle ? (
-          <div className="w-full glass p-8 rounded-3xl transform transition-all">
-            <div className="w-12 h-12 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center mb-6">
-              <MapPin size={24} />
-            </div>
-            <h2 className="text-xl font-bold mb-2">Gate Riddle</h2>
-            <p className="text-slate-300 mb-6 leading-relaxed">
-              Before your journey begins, prove your wit:<br/><br/>
-              <span className="italic text-white">"I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?"</span>
-            </p>
-            <form onSubmit={handleRiddleSubmit} className="space-y-4">
-              <input
-                type="text"
-                placeholder="Your Answer"
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                value={riddleAnswer}
-                onChange={(e) => setRiddleAnswer(e.target.value)}
-              />
-              {riddleError && <p className="text-red-400 text-sm">{riddleError}</p>}
-              <button className="w-full py-3 bg-purple-600 hover:bg-purple-500 font-bold rounded-xl transition-colors shadow-lg shadow-purple-500/25">
-                Unlock Clues
-              </button>
-            </form>
+        {fetchingClue || !currentClueData ? (
+          <div className="w-full glass p-8 rounded-3xl text-center">
+            <h2 className="text-xl font-mono text-emerald-400 animate-pulse">DECRYPTING CLUE...</h2>
           </div>
         ) : (
           <div className="w-full space-y-6">
-            <div className="glass-dark p-8 rounded-3xl relative overflow-hidden">
-              <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/10 blur-[50px]"></div>
-              <h2 className="text-sm font-bold text-emerald-400 mb-2 uppercase tracking-wider">Current Clue</h2>
-              <p className="text-2xl font-medium text-white leading-snug mb-8">
-                "{currentClue?.clue}"
-              </p>
+            <div className="bg-black/80 border border-emerald-500/50 p-6 rounded-md relative overflow-hidden font-mono shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-600 via-green-400 to-emerald-600"></div>
+              
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                <h2 className="text-xs font-bold text-red-500 uppercase tracking-widest">SYSTEM ALERT</h2>
+              </div>
+              
+              <h3 className="text-lg font-bold text-emerald-400 mb-4 border-b border-emerald-500/30 pb-2">
+                {currentClueData.title || `NODE ${currentClueData.clueId}`}
+              </h3>
+              
+              <div className="text-white text-sm mb-6 whitespace-pre-line leading-relaxed border-l-2 border-emerald-500/30 pl-4 py-2 bg-emerald-900/10">
+                {currentClueData.description}
+              </div>
+              
+              <div className="text-xs text-emerald-500/70 mb-6 uppercase tracking-wider">
+                NODE LOCATION DETECTED
+              </div>
+
               <button 
                 onClick={() => setShowScanner(true)}
-                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl flex flex-col items-center justify-center gap-2 transition-all active:scale-95 shadow-xl shadow-emerald-500/20"
+                className="w-full py-4 bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500 text-emerald-400 font-bold rounded-sm flex items-center justify-center gap-3 transition-all active:scale-95 shadow-lg shadow-emerald-500/10 relative overflow-hidden group"
               >
-                <div className="bg-white/20 p-2 rounded-full">
-                  <QrCode size={28} />
-                </div>
-                <span>Scan QR at Location</span>
+                <div className="absolute inset-0 w-0 bg-emerald-500 transition-all duration-300 ease-out group-hover:w-full opacity-10"></div>
+                <QrCode size={20} className="relative z-10" />
+                <span className="relative z-10 font-mono tracking-widest">INITIATE SCAN</span>
               </button>
             </div>
-            
-            {/* Optional mini challenge trigger could go here */}
           </div>
         )}
       </main>
 
       {showScanner && <QRScanner onScan={handleScan} onClose={() => setShowScanner(false)} />}
-      {activePuzzle && <PuzzleChallenge puzzleType={activePuzzle} onSolve={() => proceedWithClue(currentTargetId)} />}
+      {activePuzzle && <PuzzleChallenge 
+        puzzleType={activePuzzle} 
+        onSolve={() => {
+          if (activePuzzle === 'finalCipherPhase1') {
+            setActivePuzzle('finalCipherPhase2');
+          } else {
+            proceedWithClue(currentTargetId);
+          }
+        }} 
+      />}
     </div>
   );
 }

@@ -1,28 +1,52 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import React, { useEffect, useState } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 
 export default function QRScanner({ onScan, onClose }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const scanner = new Html5QrcodeScanner(
-      "qr-reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      false
-    );
+    const html5QrCode = new Html5Qrcode("qr-reader");
 
-    scanner.render(
-      (decodedText) => {
-        scanner.clear();
-        onScan(decodedText);
-      },
-      (err) => {
-        // Ignoring frequent scan errors
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        // Attempt to smartly select the rear camera
+        let cameraId = devices[devices.length - 1].id; 
+        for (const device of devices) {
+          if (device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('environment')) {
+            cameraId = device.id;
+            break;
+          }
+        }
+        
+        html5QrCode.start(
+          cameraId,
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+          },
+          (decodedText) => {
+            html5QrCode.stop().then(() => {
+              onScan(decodedText);
+            }).catch(console.error);
+          },
+          (err) => {} // ignore frame errors
+        ).catch((err) => {
+          console.error(err);
+          setError("Failed to mount hardware camera. Grant permissions and try again.");
+        });
+      } else {
+        setError("No cameras physically found on this device.");
       }
-    );
+    }).catch(err => {
+      setError("Please grant camera permissions to scan clues.");
+    });
 
     return () => {
-      scanner.clear().catch(console.error);
+      try {
+        if (html5QrCode.isScanning) {
+          html5QrCode.stop().catch(() => {});
+        }
+      } catch (e) {}
     };
   }, [onScan]);
 
@@ -33,8 +57,17 @@ export default function QRScanner({ onScan, onClose }) {
           <h3 className="font-bold text-white">Scan Location QR</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-white p-2">✕</button>
         </div>
-        <div id="qr-reader" className="w-full bg-black text-white p-4"></div>
-        {error && <div className="p-4 text-center text-red-500 bg-red-500/10">{error}</div>}
+        
+        {/* The scanner will mount the video feed directly into this div without any extra UI buttons */}
+        <div className="relative bg-black w-full min-h-[300px] flex items-center justify-center">
+          {error && (
+             <div className="absolute inset-0 flex items-center justify-center p-6 text-center z-10 bg-slate-900/90">
+                <p className="text-red-400 font-bold bg-red-500/10 p-4 rounded-xl border border-red-500/20">{error}</p>
+             </div>
+          )}
+          <div id="qr-reader" className="w-full h-full"></div>
+        </div>
+        
       </div>
     </div>
   );

@@ -1,16 +1,96 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createTeams } from '../scripts/generateTeams';
 import AdminLogin from './AdminLogin';
+import { updateGpsSettings, listenToGpsSettings, updateEventState, listenToEventState, listenToLeaderboard, uploadCluesToDb } from '../firebase/db';
+import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import LiveCampusMap from '../components/LiveCampusMap';
+import { initialClues } from '../data/clues';
 
 export default function AdminPortal() {
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
+  const [gpsEnabled, setGpsEnabled] = useState(false);
+  const [eventStatus, setEventStatus] = useState('pending');
+  const [teams, setTeams] = useState([]);
+  const [generatedTeams, setGeneratedTeams] = useState(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const unsubGps = listenToGpsSettings((enabled) => {
+        setGpsEnabled(enabled);
+      });
+      const unsubEvent = listenToEventState((status) => {
+        setEventStatus(status);
+      });
+      const unsubTeams = listenToLeaderboard((data) => {
+        setTeams(data);
+      });
+      return () => {
+        unsubGps();
+        unsubEvent();
+        unsubTeams();
+      };
+    }
+  }, [isAuthenticated]);
+
+  const handleUploadClues = async () => {
+    setLoading(true);
+    try {
+      await uploadCluesToDb(initialClues);
+      alert("Clues uploaded successfully to Firestore!");
+    } catch (err) {
+      alert("Error uploading clues: " + err.message);
+    }
+    setLoading(false);
+  };
+
   const handleGenerateTeams = async () => {
     setLoading(true);
-    await createTeams();
+    setGeneratedTeams(null);
+    try {
+      const result = await createTeams();
+      if (result.errors.length > 0) {
+        alert(`Generated ${result.teams.length} teams, but ${result.errors.length} failed. Typical cause: Email already exists or Rate Limit. Details in console.`);
+        console.error("Failed Teams:", result.errors);
+      }
+      // Show whatever teams were successfully created
+      if (result.teams.length > 0) {
+        setGeneratedTeams(result.teams);
+      } else {
+        alert("Failed to generate any new teams. They may already exist in your Firebase Authentication database.");
+      }
+    } catch (err) {
+      alert("Error generating teams: " + err.message);
+    }
     setLoading(false);
-    alert('Finished generating teams! Check CSV download.');
+  };
+
+  const handleWipeDatabase = async () => {
+    if (window.confirm("CRITICAL WARNING: This will permanently delete ALL team progress, leaderboards, and map data. Are you absolutely sure?")) {
+      const confirmText = prompt("Type 'DELETE' to confirm wipe.");
+      if (confirmText !== 'DELETE') return alert("Wipe cancelled.");
+
+      setLoading(true);
+      try {
+        const teamsRef = collection(db, 'Teams');
+        const teamDocs = await getDocs(teamsRef);
+        for (const d of teamDocs.docs) { await deleteDoc(doc(db, 'Teams', d.id)); }
+
+        const locsRef = collection(db, 'TeamLocations');
+        const locDocs = await getDocs(locsRef);
+        for (const loc of locDocs.docs) { await deleteDoc(doc(db, 'TeamLocations', loc.id)); }
+
+        alert("Database successfully wiped. All ghost teams removed.");
+      } catch (err) {
+        alert("Wipe error: " + err.message);
+      }
+      setLoading(false);
+    }
+  };
+
+  const handleToggleGps = async () => {
+    await updateGpsSettings(!gpsEnabled);
   };
 
   if (!isAuthenticated) {
@@ -23,35 +103,165 @@ export default function AdminPortal() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="glass p-6 rounded-xl">
           <h2 className="text-xl font-semibold mb-4 text-emerald-400">Event Controls</h2>
-          <div className="flex space-x-4">
-            <button className="px-4 py-2 bg-emerald-600 rounded">Start Event</button>
-            <button className="px-4 py-2 bg-yellow-600 rounded">Pause</button>
-            <button className="px-4 py-2 bg-red-600 rounded">Stop</button>
+          <div className="flex space-x-4 mb-6">
+            <button
+              onClick={() => updateEventState('active')}
+              className={`px-4 py-2 rounded transition-colors ${eventStatus === 'active' ? 'bg-emerald-500 font-bold ring-2 ring-emerald-300' : 'bg-emerald-700 hover:bg-emerald-600'}`}
+            >
+              Start Event
+            </button>
+            <button
+              onClick={() => updateEventState('paused')}
+              className={`px-4 py-2 rounded transition-colors ${eventStatus === 'paused' ? 'bg-yellow-500 font-bold ring-2 ring-yellow-300' : 'bg-yellow-700 hover:bg-yellow-600'}`}
+            >
+              Pause
+            </button>
+            <button
+              onClick={() => updateEventState('stopped')}
+              className={`px-4 py-2 rounded transition-colors ${eventStatus === 'stopped' ? 'bg-red-500 font-bold ring-2 ring-red-300' : 'bg-red-700 hover:bg-red-600'}`}
+            >
+              Stop
+            </button>
+          </div>
+
+          <div className="p-4 bg-slate-800/50 rounded-lg flex items-center justify-between border border-slate-700">
+            <div>
+              <p className="font-bold text-slate-200">Live GPS Tracking</p>
+              <p className="text-sm text-slate-400">Require participants to share location</p>
+            </div>
+            <button
+              onClick={handleToggleGps}
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${gpsEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${gpsEnabled ? 'translate-x-8' : 'translate-x-1'}`} />
+            </button>
           </div>
         </div>
-        
+
         <div className="glass p-6 rounded-xl">
           <h2 className="text-xl font-semibold mb-4 text-purple-400">Setup Tools</h2>
-          <button 
-            onClick={handleGenerateTeams} 
+          <button
+            onClick={handleUploadClues}
             disabled={loading}
-            className="px-4 py-2 bg-purple-600 rounded disabled:opacity-50"
+            className="px-4 py-2 bg-blue-600 rounded disabled:opacity-50 transition hover:bg-blue-500 w-full mb-4 font-bold shadow-lg shadow-blue-500/20"
           >
-            {loading ? 'Generating...' : 'Generate 45 Teams'}
+            {loading ? 'Processing...' : 'Upload Clue Cards to Database'}
           </button>
+
+          <button
+            onClick={handleGenerateTeams}
+            disabled={loading}
+            className="px-4 py-2 bg-purple-600 rounded disabled:opacity-50 transition hover:bg-purple-500 w-full mb-4 font-bold"
+          >
+            {loading ? 'Generating...' : 'Generate 45 Teams & Export CSV'}
+          </button>
+
+          <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+            <h3 className="font-bold text-pink-400 mb-2">QR Generator Tool</h3>
+            <p className="mb-4 text-sm text-slate-400">Print QR codes for all 25 event locations.</p>
+            <button
+              onClick={() => window.open('/qr-print', '_blank')}
+              className="px-4 py-2 w-full bg-pink-600 rounded transition hover:bg-pink-500 font-bold"
+            >
+              Open QR Print View
+            </button>
+          </div>
+
+          <div className="mt-4 p-4 bg-red-900/20 border border-red-500/50 rounded-lg">
+            <h3 className="font-bold text-red-500 mb-2">Danger Zone</h3>
+            <button
+              onClick={handleWipeDatabase}
+              disabled={loading}
+              className="w-full py-2 bg-red-600/80 hover:bg-red-500 rounded font-bold transition-all disabled:opacity-50 border border-red-500"
+            >
+              {loading ? 'Wiping...' : 'Hard Reset Database'}
+            </button>
+            <p className="text-xs text-red-400 mt-2">Deletes all team progress and ghost accounts instantly.</p>
+          </div>
         </div>
       </div>
 
-      <div className="mt-8 glass p-6 rounded-xl">
-        <h2 className="text-xl font-semibold mb-4 text-pink-400">QR Generator Tool</h2>
-        <p className="mb-4 text-slate-300">Generate and print QR codes for all 25 locations.</p>
-        <button 
-          onClick={() => window.open('/qr-print', '_blank')}
-          className="px-4 py-2 bg-pink-600 rounded shadow-lg transition hover:bg-pink-500"
-        >
-          Open QR Print View
-        </button>
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="glass p-6 rounded-xl flex flex-col">
+          <h2 className="text-xl font-semibold mb-4 text-blue-400">Live Progress Monitor</h2>
+          <div className="flex-1 overflow-auto max-h-[400px] border border-slate-700/50 rounded-xl">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead className="bg-slate-800 sticky top-0">
+                <tr>
+                  <th className="p-3 border-b border-slate-700 text-blue-400">Rank</th>
+                  <th className="p-3 border-b border-slate-700 text-blue-400">Team</th>
+                  <th className="p-3 border-b border-slate-700 text-blue-400">Clue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teams.length === 0 && (
+                  <tr>
+                    <td colSpan="3" className="p-4 text-center text-slate-500">No teams registered yet.</td>
+                  </tr>
+                )}
+                {teams.map((team, index) => (
+                  <tr key={team.id} className="border-b border-slate-700/50 hover:bg-slate-800/50">
+                    <td className="p-3 font-bold text-slate-300">#{index + 1}</td>
+                    <td className="p-3 font-semibold text-white">{team.teamName}</td>
+                    <td className="p-3 text-emerald-400">{team.currentClueIndex} / 7</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="glass p-6 rounded-xl">
+          <h2 className="text-xl font-semibold mb-4 text-orange-400">Live Campus Map</h2>
+          {gpsEnabled ? (
+            <div className="rounded-xl overflow-hidden border border-slate-700 h-[400px]">
+              <LiveCampusMap teamsData={teams} />
+            </div>
+          ) : (
+            <div className="h-[400px] flex items-center justify-center border border-slate-700 rounded-xl bg-slate-800/50 text-slate-400 flex-col">
+              <p className="mb-2 text-lg">GPS Tracking is disabled.</p>
+              <p className="text-sm">Toggle Live GPS Tracking above to view team locations.</p>
+            </div>
+          )}
+        </div>
       </div>
+
+      {generatedTeams && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4 backdrop-blur-md">
+          <div className="bg-slate-900 border border-purple-500/50 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl shadow-purple-500/20">
+            <h2 className="text-xl md:text-2xl font-black text-emerald-400 mb-2">Teams Generated Successfully!</h2>
+            <p className="text-slate-300 mb-6 text-xs md:text-sm">A CSV backup has also been downloaded to your computer. Present these credentials to your participants manually so they can log in.</p>
+
+            <div className="flex-1 overflow-x-auto bg-black/50 rounded-xl p-4 mb-6 border border-slate-800 min-h-[300px]">
+              <table className="w-full text-left font-mono text-xs md:text-sm min-w-[400px]">
+                <thead>
+                  <tr className="text-slate-500 border-b border-slate-800">
+                    <th className="pb-3 px-2 whitespace-nowrap">ID</th>
+                    <th className="pb-3 px-2 whitespace-nowrap">Login Email</th>
+                    <th className="pb-3 px-2 whitespace-nowrap relative">Password <span className="absolute -top-1 right-0 text-[10px] text-pink-500/50">case-sensitive</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {generatedTeams.map(t => (
+                    <tr key={t.email} className="border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors">
+                      <td className="py-3 px-2 text-slate-300">{t.teamName}</td>
+                      <td className="py-3 px-2 text-emerald-400">{t.email}</td>
+                      <td className="py-3 px-2 text-pink-400 tracking-widest font-bold">{t.password}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <button
+              onClick={() => setGeneratedTeams(null)}
+              className="w-full py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-white transition border border-slate-700 flex items-center justify-center gap-2"
+            >
+              Close & Return to Dashboard
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
