@@ -106,7 +106,12 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {loading ? (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent flex items-center justify-center rounded-full animate-spin mb-4"></div>
+          <p className="text-blue-400 font-mono text-sm tracking-widest animate-pulse">ESTABLISHING SECURE CONNECTION...</p>
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 }
