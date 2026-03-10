@@ -1,6 +1,5 @@
-import { doc, getDoc, updateDoc, setDoc, query, collection, where, getDocs, onSnapshot, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, query, collection, where, getDocs, onSnapshot, arrayUnion, writeBatch } from 'firebase/firestore';
 import { db } from './config';
-import { initialRiddles } from '../data/clues';
 
 // Initialize a team's start state if not already set or heal missing/incorrect paths
 export const initializeTeamState = async (teamId, teamName) => {
@@ -9,30 +8,23 @@ export const initializeTeamState = async (teamId, teamName) => {
   
   const data = snap.exists() ? snap.data() : null;
   
-  // Validate that path is exactly 7 clues long and ends at 13 (Seminar Hall)
-  const hasValidPath = data && Array.isArray(data.path) && data.path.length === 7 && data.path[6] === 13;
-  const hasRiddleIndex = data && typeof data.initialRiddleIndex === 'number';
+  // Validate that path is exactly 7 clues long: 5 random + 24 + 25
+  const hasValidPath = data && Array.isArray(data.path) && data.path.length === 7 && data.path[5] === 24 && data.path[6] === 25;
   
-  if (!data || !data.teamName || !hasValidPath || !hasRiddleIndex) {
+  if (!data || !data.teamName || !hasValidPath) {
     // Generate a new 7-length path if invalid
     let defaultPath = data?.path || [];
     if (!hasValidPath) {
-      const cluePool = [2, 3, 7, 8, 10, 11, 14, 15, 17, 18, 19, 21, 23, 25];
+      // Clues 1 through 23, excluding 13 (Seminar Hall)
+      const cluePool = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
       const shuffledPool = cluePool.sort(() => Math.random() - 0.5);
-      defaultPath = [...shuffledPool.slice(0, 6), 13];
-    }
-    
-    // Generate random riddle if missing
-    let randomRiddleIndex = data?.initialRiddleIndex;
-    if (!hasRiddleIndex) {
-      randomRiddleIndex = Math.floor(Math.random() * initialRiddles.length);
+      defaultPath = [...shuffledPool.slice(0, 5), 24, 25];
     }
 
     await setDoc(teamRef, {
       teamName: data?.teamName || teamName,
       currentClueIndex: data?.currentClueIndex || 0,
       path: defaultPath,
-      initialRiddleIndex: randomRiddleIndex,
       completedClues: data?.completedClues || [],
       lastActive: data?.lastActive || new Date().toISOString(),
       score: data?.score || 0
@@ -145,4 +137,20 @@ export const updateEventState = async (status) => {
   await setDoc(stateRef, { status }, { merge: true });
 };
 
+// Clues Management Helpers
+export const uploadCluesToDb = async (cluesList) => {
+  const batch = writeBatch(db);
+  cluesList.forEach((clue) => {
+    const clueRef = doc(db, 'Clues', clue.clueId.toString());
+    batch.set(clueRef, clue);
+  });
+  await batch.commit();
+};
+
+export const fetchClueFromDb = async (clueId) => {
+  const docRef = doc(db, 'Clues', clueId.toString());
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) return docSnap.data();
+  return null;
+};
 

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createTeams } from '../scripts/generateTeams';
 import AdminLogin from './AdminLogin';
-import { updateGpsSettings, listenToGpsSettings, updateEventState, listenToEventState, listenToLeaderboard } from '../firebase/db';
+import { updateGpsSettings, listenToGpsSettings, updateEventState, listenToEventState, listenToLeaderboard, uploadCluesToDb } from '../firebase/db';
+import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import LiveCampusMap from '../components/LiveCampusMap';
+import { initialClues } from '../data/clues';
 
 export default function AdminPortal() {
   const [loading, setLoading] = useState(false);
@@ -30,7 +33,18 @@ export default function AdminPortal() {
       };
     }
   }, [isAuthenticated]);
-  
+
+  const handleUploadClues = async () => {
+    setLoading(true);
+    try {
+      await uploadCluesToDb(initialClues);
+      alert("Clues uploaded successfully to Firestore!");
+    } catch (err) {
+      alert("Error uploading clues: " + err.message);
+    }
+    setLoading(false);
+  };
+
   const handleGenerateTeams = async () => {
     setLoading(true);
     setGeneratedTeams(null);
@@ -52,6 +66,29 @@ export default function AdminPortal() {
     setLoading(false);
   };
 
+  const handleWipeDatabase = async () => {
+    if (window.confirm("CRITICAL WARNING: This will permanently delete ALL team progress, leaderboards, and map data. Are you absolutely sure?")) {
+      const confirmText = prompt("Type 'DELETE' to confirm wipe.");
+      if (confirmText !== 'DELETE') return alert("Wipe cancelled.");
+
+      setLoading(true);
+      try {
+        const teamsRef = collection(db, 'Teams');
+        const teamDocs = await getDocs(teamsRef);
+        for (const d of teamDocs.docs) { await deleteDoc(doc(db, 'Teams', d.id)); }
+
+        const locsRef = collection(db, 'TeamLocations');
+        const locDocs = await getDocs(locsRef);
+        for (const loc of locDocs.docs) { await deleteDoc(doc(db, 'TeamLocations', loc.id)); }
+
+        alert("Database successfully wiped. All ghost teams removed.");
+      } catch (err) {
+        alert("Wipe error: " + err.message);
+      }
+      setLoading(false);
+    }
+  };
+
   const handleToggleGps = async () => {
     await updateGpsSettings(!gpsEnabled);
   };
@@ -67,19 +104,19 @@ export default function AdminPortal() {
         <div className="glass p-6 rounded-xl">
           <h2 className="text-xl font-semibold mb-4 text-emerald-400">Event Controls</h2>
           <div className="flex space-x-4 mb-6">
-            <button 
+            <button
               onClick={() => updateEventState('active')}
               className={`px-4 py-2 rounded transition-colors ${eventStatus === 'active' ? 'bg-emerald-500 font-bold ring-2 ring-emerald-300' : 'bg-emerald-700 hover:bg-emerald-600'}`}
             >
               Start Event
             </button>
-            <button 
+            <button
               onClick={() => updateEventState('paused')}
               className={`px-4 py-2 rounded transition-colors ${eventStatus === 'paused' ? 'bg-yellow-500 font-bold ring-2 ring-yellow-300' : 'bg-yellow-700 hover:bg-yellow-600'}`}
             >
               Pause
             </button>
-            <button 
+            <button
               onClick={() => updateEventState('stopped')}
               className={`px-4 py-2 rounded transition-colors ${eventStatus === 'stopped' ? 'bg-red-500 font-bold ring-2 ring-red-300' : 'bg-red-700 hover:bg-red-600'}`}
             >
@@ -92,7 +129,7 @@ export default function AdminPortal() {
               <p className="font-bold text-slate-200">Live GPS Tracking</p>
               <p className="text-sm text-slate-400">Require participants to share location</p>
             </div>
-            <button 
+            <button
               onClick={handleToggleGps}
               className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${gpsEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
             >
@@ -100,26 +137,46 @@ export default function AdminPortal() {
             </button>
           </div>
         </div>
-        
+
         <div className="glass p-6 rounded-xl">
           <h2 className="text-xl font-semibold mb-4 text-purple-400">Setup Tools</h2>
-          <button 
-            onClick={handleGenerateTeams} 
+          <button
+            onClick={handleUploadClues}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 rounded disabled:opacity-50 transition hover:bg-blue-500 w-full mb-4 font-bold shadow-lg shadow-blue-500/20"
+          >
+            {loading ? 'Processing...' : 'Upload Clue Cards to Database'}
+          </button>
+
+          <button
+            onClick={handleGenerateTeams}
             disabled={loading}
             className="px-4 py-2 bg-purple-600 rounded disabled:opacity-50 transition hover:bg-purple-500 w-full mb-4 font-bold"
           >
             {loading ? 'Generating...' : 'Generate 45 Teams & Export CSV'}
           </button>
-          
+
           <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
             <h3 className="font-bold text-pink-400 mb-2">QR Generator Tool</h3>
             <p className="mb-4 text-sm text-slate-400">Print QR codes for all 25 event locations.</p>
-            <button 
+            <button
               onClick={() => window.open('/qr-print', '_blank')}
               className="px-4 py-2 w-full bg-pink-600 rounded transition hover:bg-pink-500 font-bold"
             >
               Open QR Print View
             </button>
+          </div>
+
+          <div className="mt-4 p-4 bg-red-900/20 border border-red-500/50 rounded-lg">
+            <h3 className="font-bold text-red-500 mb-2">Danger Zone</h3>
+            <button
+              onClick={handleWipeDatabase}
+              disabled={loading}
+              className="w-full py-2 bg-red-600/80 hover:bg-red-500 rounded font-bold transition-all disabled:opacity-50 border border-red-500"
+            >
+              {loading ? 'Wiping...' : 'Hard Reset Database'}
+            </button>
+            <p className="text-xs text-red-400 mt-2">Deletes all team progress and ghost accounts instantly.</p>
           </div>
         </div>
       </div>
@@ -174,30 +231,30 @@ export default function AdminPortal() {
           <div className="bg-slate-900 border border-purple-500/50 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl shadow-purple-500/20">
             <h2 className="text-xl md:text-2xl font-black text-emerald-400 mb-2">Teams Generated Successfully!</h2>
             <p className="text-slate-300 mb-6 text-xs md:text-sm">A CSV backup has also been downloaded to your computer. Present these credentials to your participants manually so they can log in.</p>
-            
+
             <div className="flex-1 overflow-x-auto bg-black/50 rounded-xl p-4 mb-6 border border-slate-800 min-h-[300px]">
               <table className="w-full text-left font-mono text-xs md:text-sm min-w-[400px]">
-                 <thead>
-                   <tr className="text-slate-500 border-b border-slate-800">
-                     <th className="pb-3 px-2 whitespace-nowrap">ID</th>
-                     <th className="pb-3 px-2 whitespace-nowrap">Login Email</th>
-                     <th className="pb-3 px-2 whitespace-nowrap relative">Password <span className="absolute -top-1 right-0 text-[10px] text-pink-500/50">case-sensitive</span></th>
-                   </tr>
-                 </thead>
-                 <tbody>
-                   {generatedTeams.map(t => (
-                     <tr key={t.email} className="border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors">
-                       <td className="py-3 px-2 text-slate-300">{t.teamName}</td>
-                       <td className="py-3 px-2 text-emerald-400">{t.email}</td>
-                       <td className="py-3 px-2 text-pink-400 tracking-widest font-bold">{t.password}</td>
-                     </tr>
-                   ))}
-                 </tbody>
+                <thead>
+                  <tr className="text-slate-500 border-b border-slate-800">
+                    <th className="pb-3 px-2 whitespace-nowrap">ID</th>
+                    <th className="pb-3 px-2 whitespace-nowrap">Login Email</th>
+                    <th className="pb-3 px-2 whitespace-nowrap relative">Password <span className="absolute -top-1 right-0 text-[10px] text-pink-500/50">case-sensitive</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {generatedTeams.map(t => (
+                    <tr key={t.email} className="border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors">
+                      <td className="py-3 px-2 text-slate-300">{t.teamName}</td>
+                      <td className="py-3 px-2 text-emerald-400">{t.email}</td>
+                      <td className="py-3 px-2 text-pink-400 tracking-widest font-bold">{t.password}</td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
 
-            <button 
-              onClick={() => setGeneratedTeams(null)} 
+            <button
+              onClick={() => setGeneratedTeams(null)}
               className="w-full py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-white transition border border-slate-700 flex items-center justify-center gap-2"
             >
               Close & Return to Dashboard

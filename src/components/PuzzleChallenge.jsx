@@ -11,6 +11,16 @@ export default function PuzzleChallenge({ onSolve, puzzleType = 'caesar' }) {
       desc: 'Decode the message: QEB NRFZH YOLTK CLU GRJMP LSBO QEB IXWV ALD (Hint: Caesar Shift -3)',
       correctFunc: (ans) => ans.toLowerCase().replace(/[^a-z]/g, '') === 'thequickbrownfoxjumpsoverthelazydog'
     },
+    finalCipherPhase1: {
+      title: 'Final Node Detected',
+      desc: 'Decrypt the transmission to reveal the final directive: "Uifsf jt pof mbtu opef." (Key: -1)',
+      correctFunc: (ans) => ans.toLowerCase().replace(/[^a-z\s]/g, '').trim() === 'there is one last node'
+    },
+    finalCipherPhase2: {
+      title: 'Origin Protocol',
+      desc: 'Decrypt the secondary transmission: "ilqlvk zkhuh brx vwduwhg" (Key: +3)',
+      correctFunc: (ans) => ans.toLowerCase().replace(/[^a-z\s]/g, '').trim() === 'finish where you started'
+    },
     frequency: {
       title: 'Frequency Match',
       desc: 'Set the slider to the optimal resonance frequency (75Hz) to bypass the lock.',
