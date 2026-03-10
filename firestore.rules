@@ -13,12 +13,9 @@ service cloud.firestore {
     // Public read for leaderboard. 
     match /Teams/{teamId} {
       allow read: if true;
-      
-      // Allow the participant to update their own score and clue progress
       allow update: if request.auth != null && request.auth.uid == teamId;
-      
-      // Allow the participant to create their initial profile during the First-Login Auto-Registration
       allow create: if request.auth != null && request.auth.uid == teamId; 
+      allow delete: if request.auth != null && request.auth.token.email == 'admin@beta.com';
     }
 
     // Settings Collection 
