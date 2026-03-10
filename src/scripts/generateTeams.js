@@ -1,18 +1,28 @@
-import { teamCredentials } from '../data/teamCredentials';
+// Helper to generate a random 8-char password
+const generatePassword = () => {
+  return Math.random().toString(36).slice(-8);
+};
 
 export const createTeams = async () => {
   const teams = [];
   const errors = [];
 
-  // Try to create Firebase Auth Users and map them
-  for (const [index, creds] of teamCredentials.entries()) {
-    const teamNumber = (index + 1).toString().padStart(2, '0');
+  // Generate a random 4-char batch ID to avoid any potential manual recreation clashes
+  const batchId = Math.random().toString(36).slice(-4);
+
+  // Instantly generate 45 Teams entirely client-side.
+  // We completely bypass Firebase Auth Rate limits because users 
+  // actually create their auth accounts automatically when they First Log in!
+  for (let i = 1; i <= 45; i++) {
+    const teamNumber = i.toString().padStart(2, '0');
     const teamName = `Team${teamNumber}`;
+    const email = `team${teamNumber}-${batchId}@beta.com`;
+    const password = generatePassword();
 
     teams.push({
       teamName,
-      email: creds.email,
-      password: creds.password,
+      email,
+      password,
     });
   }
 

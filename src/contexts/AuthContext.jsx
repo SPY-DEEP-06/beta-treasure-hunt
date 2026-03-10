@@ -3,7 +3,6 @@ import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndP
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { initializeTeamState } from '../firebase/db';
-import { teamCredentials } from '../data/teamCredentials';
 
 const AuthContext = createContext();
 
@@ -33,44 +32,20 @@ export function AuthProvider({ children }) {
     let unsubDoc;
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-
+      setCurrentUser(user);
       if (user) {
-
-        // Critical Security Check: Ensure the active session matches our hardcoded approved credentials or the admin.
-        const isAdminSession = user.email?.toLowerCase() === 'admin@beta.com';
-        const isAuthorizedSession = teamCredentials.some(
-          cred => cred.email.toLowerCase() === user.email?.toLowerCase()
-        );
-
-        if (!isAuthorizedSession && !isAdminSession) {
-          console.warn("Unauthorized cached session detected. Logging out.");
-          await signOut(auth);
-          setCurrentUser(null);
-          setTeamData(null);
-          setLoading(false);
-          return;
-        }
-
-        setCurrentUser(user);
-
-        // Do not initialize a Team profile for the Event Admin
-        if (isAdminSession) {
-          setTeamData(null);
-          setLoading(false);
-          return;
-        }
-
         // Listen to team progress from Firestore in real-time
         const teamDocRef = doc(db, 'Teams', user.uid);
         unsubDoc = onSnapshot(teamDocRef, async (teamDoc) => {
           if (teamDoc.exists()) {
             const data = teamDoc.data();
 
-            // Critical Auto-Heal: If the active session is a legacy account or lacks the exact new 7-clue format, heal it instantly.
-            const hasValidPath = data.path && Array.isArray(data.path) && data.path.length === 7 && data.path[5] === 24 && data.path[6] === 25;
+            // Critical Auto-Heal: If the active session is a legacy account or lacks the exact 7-clue format, heal it instantly.
+            const hasValidPath = data.path && Array.isArray(data.path) && data.path.length === 7 && data.path[6] === 13;
+            const hasRiddleIndex = typeof data.initialRiddleIndex === 'number';
 
-            if (!hasValidPath) {
-              await initializeTeamState(teamDoc.id, data.teamName || user.email.split('@')[0]);
+            if (!hasValidPath || !hasRiddleIndex) {
+              await initializeTeamState(teamDoc.id, data.teamName || `Team_${teamDoc.id.substring(0, 4)}`);
               // The setDoc inside initializeTeamState will immediately trigger this onSnapshot again.
               return;
             }
@@ -78,7 +53,7 @@ export function AuthProvider({ children }) {
             setTeamData({ id: teamDoc.id, ...data });
           } else {
             // Document completely missing (corrupted or deleted manually). Recreate it instantly.
-            await initializeTeamState(teamDoc.id, user.email.split('@')[0]);
+            await initializeTeamState(teamDoc.id, `Team_${teamDoc.id.substring(0, 4)}`);
             return;
           }
           setLoading(false); // Only stop loading auth state once we have the DB state checked

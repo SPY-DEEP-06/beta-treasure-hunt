@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createTeams } from '../scripts/generateTeams';
 import AdminLogin from './AdminLogin';
-import { updateGpsSettings, listenToGpsSettings, updateEventState, listenToEventState, listenToLeaderboard, uploadCluesToDb } from '../firebase/db';
-import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { updateGpsSettings, listenToGpsSettings, updateEventState, listenToEventState, listenToLeaderboard } from '../firebase/db';
 import LiveCampusMap from '../components/LiveCampusMap';
-import { initialClues } from '../data/clues';
 
 export default function AdminPortal() {
   const [loading, setLoading] = useState(false);
@@ -34,17 +31,6 @@ export default function AdminPortal() {
     }
   }, [isAuthenticated]);
 
-  const handleUploadClues = async () => {
-    setLoading(true);
-    try {
-      await uploadCluesToDb(initialClues);
-      alert("Clues uploaded successfully to Firestore!");
-    } catch (err) {
-      alert("Error uploading clues: " + err.message);
-    }
-    setLoading(false);
-  };
-
   const handleGenerateTeams = async () => {
     setLoading(true);
     setGeneratedTeams(null);
@@ -64,29 +50,6 @@ export default function AdminPortal() {
       alert("Error generating teams: " + err.message);
     }
     setLoading(false);
-  };
-
-  const handleWipeDatabase = async () => {
-    if (window.confirm("CRITICAL WARNING: This will permanently delete ALL team progress, leaderboards, and map data. Are you absolutely sure?")) {
-      const confirmText = prompt("Type 'DELETE' to confirm wipe.");
-      if (confirmText !== 'DELETE') return alert("Wipe cancelled.");
-
-      setLoading(true);
-      try {
-        const teamsRef = collection(db, 'Teams');
-        const teamDocs = await getDocs(teamsRef);
-        for (const d of teamDocs.docs) { await deleteDoc(doc(db, 'Teams', d.id)); }
-
-        const locsRef = collection(db, 'TeamLocations');
-        const locDocs = await getDocs(locsRef);
-        for (const loc of locDocs.docs) { await deleteDoc(doc(db, 'TeamLocations', loc.id)); }
-
-        alert("Database successfully wiped. All ghost teams removed.");
-      } catch (err) {
-        alert("Wipe error: " + err.message);
-      }
-      setLoading(false);
-    }
   };
 
   const handleToggleGps = async () => {
@@ -141,14 +104,6 @@ export default function AdminPortal() {
         <div className="glass p-6 rounded-xl">
           <h2 className="text-xl font-semibold mb-4 text-purple-400">Setup Tools</h2>
           <button
-            onClick={handleUploadClues}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 rounded disabled:opacity-50 transition hover:bg-blue-500 w-full mb-4 font-bold shadow-lg shadow-blue-500/20"
-          >
-            {loading ? 'Processing...' : 'Upload Clue Cards to Database'}
-          </button>
-
-          <button
             onClick={handleGenerateTeams}
             disabled={loading}
             className="px-4 py-2 bg-purple-600 rounded disabled:opacity-50 transition hover:bg-purple-500 w-full mb-4 font-bold"
@@ -165,18 +120,6 @@ export default function AdminPortal() {
             >
               Open QR Print View
             </button>
-          </div>
-
-          <div className="mt-4 p-4 bg-red-900/20 border border-red-500/50 rounded-lg">
-            <h3 className="font-bold text-red-500 mb-2">Danger Zone</h3>
-            <button
-              onClick={handleWipeDatabase}
-              disabled={loading}
-              className="w-full py-2 bg-red-600/80 hover:bg-red-500 rounded font-bold transition-all disabled:opacity-50 border border-red-500"
-            >
-              {loading ? 'Wiping...' : 'Hard Reset Database'}
-            </button>
-            <p className="text-xs text-red-400 mt-2">Deletes all team progress and ghost accounts instantly.</p>
           </div>
         </div>
       </div>

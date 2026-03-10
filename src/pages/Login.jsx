@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { initializeTeamState } from '../firebase/db';
-import { teamCredentials } from '../data/teamCredentials';
 import { Lock } from 'lucide-react';
 
 export default function Login() {
@@ -18,15 +17,6 @@ export default function Login() {
     try {
       setError('');
       setLoading(true);
-
-      // Validate credentials against the hardcoded provided list
-      const isValidTeam = teamCredentials.find(
-        (cred) => cred.email.toLowerCase() === email.toLowerCase().trim() && cred.password === password
-      );
-
-      if (!isValidTeam) {
-        throw new Error('Unauthorized credentials. Please use the exact login details provided by the organizers.');
-      }
 
       let userCredential;
       try {

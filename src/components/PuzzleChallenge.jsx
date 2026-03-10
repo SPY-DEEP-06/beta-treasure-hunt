@@ -11,16 +11,6 @@ export default function PuzzleChallenge({ onSolve, puzzleType = 'caesar' }) {
       desc: 'Decode the message: QEB NRFZH YOLTK CLU GRJMP LSBO QEB IXWV ALD (Hint: Caesar Shift -3)',
       correctFunc: (ans) => ans.toLowerCase().replace(/[^a-z]/g, '') === 'thequickbrownfoxjumpsoverthelazydog'
     },
-    finalCipherPhase1: {
-      title: 'Final Node Detected',
-      desc: 'Decrypt the transmission to reveal the final directive: "Uifsf jt pof mbtu opef." (Key: -1)',
-      correctFunc: (ans) => ans.toLowerCase().replace(/[^a-z\s]/g, '').trim() === 'there is one last node'
-    },
-    finalCipherPhase2: {
-      title: 'Origin Protocol',
-      desc: 'Decrypt the secondary transmission: "ilqlvk zkhuh brx vwduwhg" (Key: +3)',
-      correctFunc: (ans) => ans.toLowerCase().replace(/[^a-z\s]/g, '').trim() === 'finish where you started'
-    },
     frequency: {
       title: 'Frequency Match',
       desc: 'Set the slider to the optimal resonance frequency (75Hz) to bypass the lock.',
@@ -61,13 +51,13 @@ export default function PuzzleChallenge({ onSolve, puzzleType = 'caesar' }) {
         <p className="text-blue-300/80 mb-8 font-mono text-sm leading-relaxed">
           {puzzle.desc}
         </p>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {puzzle.isSlider ? (
-            <input 
-              type="range" 
-              min="0" max="100" 
-              value={answer || 50} 
+            <input
+              type="range"
+              min="0" max="100"
+              value={answer || 50}
               onChange={(e) => setAnswer(e.target.value)}
               className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
             />
@@ -82,7 +72,7 @@ export default function PuzzleChallenge({ onSolve, puzzleType = 'caesar' }) {
           )}
 
           {error && <p className="text-red-400 text-sm font-bold animate-pulse">{error}</p>}
-          
+
           <button type="submit" className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl uppercase tracking-widest transition-all">
             Bypass Lock
           </button>

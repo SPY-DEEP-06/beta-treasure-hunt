@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { eventLocations, initialRiddles } from '../data/clues';
 import QRScanner from '../components/QRScanner';
-import { advanceClue, logScan, listenToGpsSettings, updateTeamLocation, listenToEventState, fetchClueFromDb } from '../firebase/db';
+import { advanceClue, logScan, listenToGpsSettings, updateTeamLocation, listenToEventState } from '../firebase/db';
 import { QrCode, MapPin } from 'lucide-react';
 import PuzzleChallenge from '../components/PuzzleChallenge';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -12,8 +13,9 @@ export default function ParticipantPortal() {
   const { currentUser, teamData } = useAuth();
   const navigate = useNavigate();
   const [showScanner, setShowScanner] = useState(false);
-  const [currentClueData, setCurrentClueData] = useState(null);
-  const [fetchingClue, setFetchingClue] = useState(false);
+  const [riddleAnswer, setRiddleAnswer] = useState('');
+  const [riddleError, setRiddleError] = useState('');
+  const [riddlePassed, setRiddlePassed] = useState(false);
 
   // Custom Name Setup State
   const [customName, setCustomName] = useState('');
@@ -174,16 +176,24 @@ export default function ParticipantPortal() {
 
   const isFinished = currentClueIndex >= pathLength;
   const currentTargetId = !isFinished && teamData.path ? teamData.path[currentClueIndex] : null;
+  const currentClue = currentTargetId ? eventLocations.find(l => l.id === currentTargetId) : null;
 
-  useEffect(() => {
-    if (currentTargetId) {
-      setFetchingClue(true);
-      fetchClueFromDb(currentTargetId).then(data => {
-        setCurrentClueData(data);
-        setFetchingClue(false);
-      });
+  // We enforce initial riddle only if they haven't advanced past clue 0 AND haven't passed in this session
+  // In a robust implementation, 'riddlePassed' would be persisted in Firebase. For brevity, if index > 0, they passed.
+  const needsInitialRiddle = currentClueIndex === 0 && !riddlePassed;
+
+  const teamRiddleIndex = teamData.initialRiddleIndex ?? 0;
+  const currentInitialRiddle = initialRiddles[teamRiddleIndex] || initialRiddles[0];
+
+  const handleRiddleSubmit = (e) => {
+    e.preventDefault();
+    if (riddleAnswer.toLowerCase().trim() === currentInitialRiddle.answer) {
+      setRiddlePassed(true);
+      setRiddleError('');
+    } else {
+      setRiddleError('Incorrect answer. Try again!');
     }
-  }, [currentTargetId]);
+  };
 
 
   const handleScan = async (scannedText) => {
@@ -197,9 +207,7 @@ export default function ParticipantPortal() {
     }
 
     if (scannedId === currentTargetId) {
-      if (scannedId === 25) {
-        setActivePuzzle('finalCipherPhase1');
-      } else if (currentClueIndex === 2) {
+      if (currentClueIndex === 2) {
         setActivePuzzle('caesar');
       } else if (currentClueIndex === 4) {
         setActivePuzzle('rsa');
@@ -275,56 +283,56 @@ export default function ParticipantPortal() {
       </header>
 
       <main className="w-full flex-1 flex flex-col items-center justify-center z-10 w-full">
-        {fetchingClue || !currentClueData ? (
-          <div className="w-full glass p-8 rounded-3xl text-center">
-            <h2 className="text-xl font-mono text-emerald-400 animate-pulse">DECRYPTING CLUE...</h2>
+        {needsInitialRiddle ? (
+          <div className="w-full glass p-8 rounded-3xl transform transition-all">
+            <div className="w-12 h-12 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center mb-6">
+              <MapPin size={24} />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Gate Riddle</h2>
+            <p className="text-slate-300 mb-6 leading-relaxed">
+              Before your journey begins, prove your wit:<br /><br />
+              <span className="italic text-white">"{currentInitialRiddle.question}"</span>
+            </p>
+            <form onSubmit={handleRiddleSubmit} className="space-y-4">
+              <input
+                type="text"
+                placeholder="Your Answer"
+                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                value={riddleAnswer}
+                onChange={(e) => setRiddleAnswer(e.target.value)}
+              />
+              {riddleError && <p className="text-red-400 text-sm">{riddleError}</p>}
+              <button className="w-full py-3 bg-purple-600 hover:bg-purple-500 font-bold rounded-xl transition-colors shadow-lg shadow-purple-500/25">
+                Unlock Clues
+              </button>
+            </form>
           </div>
         ) : (
           <div className="w-full space-y-6">
-            <div className="bg-black/80 border border-emerald-500/50 p-6 rounded-md relative overflow-hidden font-mono shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-600 via-green-400 to-emerald-600"></div>
-
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                <h2 className="text-xs font-bold text-red-500 uppercase tracking-widest">SYSTEM ALERT</h2>
-              </div>
-
-              <h3 className="text-lg font-bold text-emerald-400 mb-4 border-b border-emerald-500/30 pb-2">
-                {currentClueData.title || `NODE ${currentClueData.clueId}`}
-              </h3>
-
-              <div className="text-white text-sm mb-6 whitespace-pre-line leading-relaxed border-l-2 border-emerald-500/30 pl-4 py-2 bg-emerald-900/10">
-                {currentClueData.description}
-              </div>
-
-              <div className="text-xs text-emerald-500/70 mb-6 uppercase tracking-wider">
-                NODE LOCATION DETECTED
-              </div>
-
+            <div className="glass-dark p-8 rounded-3xl relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-500/10 blur-[50px]"></div>
+              <h2 className="text-sm font-bold text-emerald-400 mb-2 uppercase tracking-wider">Current Clue</h2>
+              <p className="text-2xl font-medium text-white leading-snug mb-8">
+                "{currentClue?.clue || 'Loading... Please wait for synchronization.'}"
+              </p>
               <button
                 onClick={() => setShowScanner(true)}
-                className="w-full py-4 bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500 text-emerald-400 font-bold rounded-sm flex items-center justify-center gap-3 transition-all active:scale-95 shadow-lg shadow-emerald-500/10 relative overflow-hidden group"
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl flex flex-col items-center justify-center gap-2 transition-all active:scale-95 shadow-xl shadow-emerald-500/20"
               >
-                <div className="absolute inset-0 w-0 bg-emerald-500 transition-all duration-300 ease-out group-hover:w-full opacity-10"></div>
-                <QrCode size={20} className="relative z-10" />
-                <span className="relative z-10 font-mono tracking-widest">INITIATE SCAN</span>
+                <div className="bg-white/20 p-2 rounded-full">
+                  <QrCode size={28} />
+                </div>
+                <span>Scan QR at Location</span>
               </button>
             </div>
+
+            {/* Optional mini challenge trigger could go here */}
           </div>
         )}
       </main>
 
       {showScanner && <QRScanner onScan={handleScan} onClose={() => setShowScanner(false)} />}
-      {activePuzzle && <PuzzleChallenge
-        puzzleType={activePuzzle}
-        onSolve={() => {
-          if (activePuzzle === 'finalCipherPhase1') {
-            setActivePuzzle('finalCipherPhase2');
-          } else {
-            proceedWithClue(currentTargetId);
-          }
-        }}
-      />}
+      {activePuzzle && <PuzzleChallenge puzzleType={activePuzzle} onSolve={() => proceedWithClue(currentTargetId)} />}
     </div>
   );
 }
