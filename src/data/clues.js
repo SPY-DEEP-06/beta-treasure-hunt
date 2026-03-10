@@ -2,7 +2,7 @@ export const initialClues = [
   {
     clueId: 1,
     title: "NODE 01 // FLAME WARDEN",
-    description: "SYSTEM ALERT: TEMPERATURE OVERLOAD\nEmergency Protocol Activated.\n\n“Locate the RED cylindrical device\nconnected to the wall,\nused when systems overheat.”\n\nNode Location: FLOOR = 1",
+    description: "SYSTEM ALERT: The red warrior that fights flames silently waits near pipes.\n> INSTRUCT: LOCATE AND SCAN",
     locationName: "Fire extinguisher inside hose/outlet first floor",
     qrId: "1",
     floor: "1st Floor",
@@ -11,7 +11,7 @@ export const initialClues = [
   {
     clueId: 2,
     title: "NODE 02 // CIRCUIT_DANCE",
-    description: "01001100 01000001 01000010\n\nExecution takes place\nwhere experiments compile.",
+    description: "SYSTEM ALERT: Where electrons dance and circuits connect on the first level.\n> INSTRUCT: INITIALIZE SCAN",
     locationName: "Lab 111 first floor",
     qrId: "2",
     floor: "1st Floor",
@@ -20,7 +20,7 @@ export const initialClues = [
   {
     clueId: 3,
     title: "NODE 03 // GLASS_SECRETS",
-    description: "ENVIRONMENT SENSOR LOG\nLight_Input = TRUE\nAirflow = TRUE\nBarrier_Type = TRANSPARENT\n\nSystem Boundary Detected\nbetween INDOOR and OUTDOOR.\nSearch near Node 101.",
+    description: "SYSTEM ALERT: Through this glass, you might see the 101st room's secrets.\n> INSTRUCT: SECURE THE PERIMETER",
     locationName: "Window near lab 101 first floor",
     qrId: "3",
     floor: "1st Floor",
@@ -29,7 +29,7 @@ export const initialClues = [
   {
     clueId: 4,
     title: "NODE 04 // DATA_BOARD",
-    description: "public static void announce()\n{\n   display(updates);\n   notify(students);\n}\n\nSearch the public interface\nwhere information is broadcast\nnear Node 001.",
+    description: "SYSTEM ALERT: News and notices hang here near the ground floor start.\n> INSTRUCT: EXTRACT INFORMATION",
     locationName: "Notice board near 001 ground floor",
     qrId: "4",
     floor: "Ground Floor",
@@ -38,7 +38,7 @@ export const initialClues = [
   {
     clueId: 5,
     title: "NODE 05 // DEEP_DESCENT",
-    description: "GRAPH TRAVERSAL REQUIRED\n\nCurrent Node: Basement\nGoal Node: Exit\n\nUse the structure\nthat connects multiple levels.",
+    description: "SYSTEM ALERT: Steps leading down to the deepest exit.\n> INSTRUCT: PROCEED DOWNWARD",
     locationName: "Staircase near exit basement",
     qrId: "5",
     floor: "Basement",
@@ -47,7 +47,7 @@ export const initialClues = [
   {
     clueId: 6,
     title: "NODE 06 // ANCIENT_ROOTS",
-    description: "DATA STRUCTURE DETECTED\n\n         ROOT\n        /  |  \\\n      /    |   \\\n   BRANCH BRANCH BRANCH\n\nFind the natural structure\nnear the coffee server around campus.",
+    description: "SYSTEM ALERT: Ancient roots near where the coffee brews.\n> INSTRUCT: SCAN ORGANIC MATTER",
     locationName: "Banyan tree near cafe outside",
     qrId: "6",
     floor: "Outside",
@@ -56,7 +56,7 @@ export const initialClues = [
   {
     clueId: 7,
     title: "NODE 07 // POWER_BEAST",
-    description: "POWER FAILURE DETECTED.\nif(mainPower == OFF)\n   backupSystem = ON;\n\nSearch behind the backup system.",
+    description: "SYSTEM ALERT: Behind the slumbering metal beast that powers the campus.\n> INSTRUCT: AVOID HIGH VOLTAGE",
     locationName: "Behind corner of generator outside",
     qrId: "7",
     floor: "Outside",
@@ -65,7 +65,7 @@ export const initialClues = [
   {
     clueId: 8,
     title: "NODE 08 // ENERGY_SHIELD",
-    description: "NETWORK PIPELINE ACTIVE.\n\nData Flow ↔ Water Flow\nSearch near shutter area.",
+    description: "SYSTEM ALERT: A shutter shielding bolts of energy near the outside exit.\n> INSTRUCT: BYPASS SECURITY",
     locationName: "Power supply shutter near exit ground floor outside",
     qrId: "8",
     floor: "Ground Floor",
@@ -74,7 +74,7 @@ export const initialClues = [
   {
     clueId: 9,
     title: "NODE 09 // LOOP_DETECTED",
-    description: "ESCAPE PROTOCOL INITIALIZED.\n\nTo move between nodes\nat different levels,\nuse the vertical connector.\n\nFind the path to EXIT arena.",
+    description: "SYSTEM ALERT: Wait, didn't you already go down? Another path awaits.\n> INSTRUCT: RECALCULATE ROUTE",
     locationName: "Staircase to exit basement",
     qrId: "9",
     floor: "Basement",
@@ -83,7 +83,7 @@ export const initialClues = [
   {
     clueId: 10,
     title: "NODE 10 // HYDRATION_SYSTEM",
-    description: "HYDRAULIC SYSTEM ONLINE.\n\nPump → Pipe → Hydrant\n\nSearch above or around\nthe emergency water system.",
+    description: "SYSTEM ALERT: Look up where the water sleeps, below the red pipes.\n> INSTRUCT: CHECK CEILING CLEARANCE",
     locationName: "Behind fire pump room ceiling or below hydrant pipes",
     qrId: "10",
     floor: "Basement/Ground",
@@ -92,7 +92,7 @@ export const initialClues = [
   {
     clueId: 11,
     title: "NODE 11 // PERIPHERAL_NEST",
-    description: "INPUT DEVICE DETECTED.\n\nPeripheral Set:\nKeyboard\nMouse\n\nCheck the home of the input device.",
+    description: "SYSTEM ALERT: Where 208 mice rest their tails on the second floor.\n> INSTRUCT: INSPECT HARDWARE PERIPHERALS",
     locationName: "Extendible mouse placer in keyboard holder of lab 208 second floor",
     qrId: "11",
     floor: "2nd Floor",
@@ -101,7 +101,7 @@ export const initialClues = [
   {
     clueId: 12,
     title: "NODE 12 // OPEN_AIR_IT",
-    description: "QUEUE STRUCTURE INITIALIZED.\nview= volleyball ground\nStudents.enqueue()\nStudents.dequeue()\n\nFind where elements wait\nbefore execution\nnear Lab 304.",
+    description: "SYSTEM ALERT: A resting place in the open air, third floor IT.\n> INSTRUCT: PROCEED TO BALCONY",
     locationName: "Behind group of benches in balcony lab 304 IT department third floor",
     qrId: "12",
     floor: "3rd Floor",
@@ -110,7 +110,7 @@ export const initialClues = [
   {
     clueId: 13,
     title: "NODE 13 // AUDIO_TOWER",
-    description: "MAIN FUNCTION EXECUTION.\n\nSpeaker → Stage\nAudience → Listen\n\nLocate the control node\nfrom where presentations run.",
+    description: "SYSTEM ALERT: Where speakers stand tall, their secrets hidden below.\n> INSTRUCT: ACCESS PODIUM",
     locationName: "Host podium of seminar hall third floor or first floor",
     qrId: "13",
     floor: "Seminar Hall",
@@ -119,7 +119,7 @@ export const initialClues = [
   {
     clueId: 14,
     title: "NODE 14 // WOODEN_GUARD",
-    description: "STORAGE MODULE DETECTED.\n\nFiles and resources\nare stored in a vertical container near vehicles.",
+    description: "SYSTEM ALERT: Where the staff ascends, a wooden guard stands.\n> INSTRUCT: BYPASS CABINET",
     locationName: "Behind cabinet near staff lift",
     qrId: "14",
     floor: "Lift Area",
@@ -128,7 +128,7 @@ export const initialClues = [
   {
     clueId: 15,
     title: "NODE 15 // MASTERS_DOMAIN",
-    description: "SPACE OPTIMIZATION DETECTED.\n\nUnused memory often lies\nbeneath structural paths.\n\nSearch under the vertical connecting structure leading to the admin node.",
+    description: "SYSTEM ALERT: Underneath the steps where the masters rule.\n> INSTRUCT: INVESTIGATE ADMIN STAIRS",
     locationName: "Below staircase leading to admin office",
     qrId: "15",
     floor: "Admin",
@@ -137,7 +137,7 @@ export const initialClues = [
   {
     clueId: 16,
     title: "NODE 16 // DATA_ARCHIVE",
-    description: "DATABASE UPDATE.\n\nInformation for students\nis cached here.\n\nLocate the announcement panel\nnear the knowledge repository.",
+    description: "SYSTEM ALERT: Read all about it where the books reside.\n> INSTRUCT: ACCESS LIBRARY LOGS",
     locationName: "Notice board near library ground floor",
     qrId: "16",
     floor: "Ground Floor",
@@ -146,7 +146,7 @@ export const initialClues = [
   {
     clueId: 17,
     title: "NODE 17 // DUAL_VIEW",
-    description: "VENTILATION PORT FOUND.\n\nLight Input = TRUE\nAirflow = ACTIVE\n\nSearch behind the structure near Node 301.",
+    description: "SYSTEM ALERT: Look through the glass of 301, or perhaps where one freshens up.\n> INSTRUCT: ANALYZE REFRACTION",
     locationName: "Classroom 301 window or washroom window third floor",
     qrId: "17",
     floor: "3rd Floor",
@@ -155,7 +155,7 @@ export const initialClues = [
   {
     clueId: 18,
     title: "NODE 18 // HIDDEN_PARTITION",
-    description: "STRUCTURAL DIVIDER DETECTED.\n\nTwo spaces separated\nby a vertical boundary.\n\nCheck behind the partition\nnear Node 303.",
+    description: "SYSTEM ALERT: Behind a hidden wall near room 303.\n> INSTRUCT: DETECT STRUCTURAL ANOMALY",
     locationName: "In front of 303 partition behind side wall third floor",
     qrId: "18",
     floor: "3rd Floor",
@@ -164,7 +164,7 @@ export const initialClues = [
   {
     clueId: 19,
     title: "NODE 19 // BANNER_SANDWICH",
-    description: "VISUAL MARKERS DETECTED.\n\nTwo signals displayed\nside by side.\n\nSearch the region\nbetween them.",
+    description: "SYSTEM ALERT: Sandwiched between two giant signs on the third level.\n> INSTRUCT: SQUEEZE THROUGH",
     locationName: "Between two banners on floor 3",
     qrId: "19",
     floor: "3rd Floor",
@@ -173,7 +173,7 @@ export const initialClues = [
   {
     clueId: 20,
     title: "NODE 20 // HIGH_ALTITUDE_FLAME",
-    description: "FIRE SAFETY SYSTEM ACTIVE.\n\nRed pipes transport\nhigh-pressure suppression.\non level 3.",
+    description: "SYSTEM ALERT: A red box hiding near red pipes, but much higher than before.\n> INSTRUCT: REACH ELEVATED TARGET",
     locationName: "Fire extinguisher box behind red pipes third floor",
     qrId: "20",
     floor: "3rd Floor",
@@ -182,7 +182,7 @@ export const initialClues = [
   {
     clueId: 21,
     title: "NODE 21 // COOLANT_DISPENSER",
-    description: "COOLING SYSTEM ONLINE.\n\nHydration Module Found.\n\nLocate the container\nthat stores disposable cups.",
+    description: "SYSTEM ALERT: Where the thirsty gather to quench their dry throats.\n> INSTRUCT: LOCATE WATER SOURCE",
     locationName: "Cup holder of water cooler ground floor",
     qrId: "21",
     floor: "Ground Floor",
@@ -191,7 +191,7 @@ export const initialClues = [
   {
     clueId: 22,
     title: "NODE 22 // GRAND_ANNOUNCEMENT",
-    description: "EVENT NODE DETECTED.\nSearch behind the broadest information display.",
+    description: "SYSTEM ALERT: Behind the grand announcement on the first level.\n> INSTRUCT: CHECK BEHIND DISPLAY",
     locationName: "Behind banner on first floor",
     qrId: "22",
     floor: "1st Floor",
@@ -209,7 +209,7 @@ export const initialClues = [
   {
     clueId: 24,
     title: "NODE 24 // WATCHERS_GATE",
-    description: "FINAL PATH APPROACHING SECURITY.\n\nLook for disturbed earth\nnear the structure ahead.\n\nThe next key lies\nwhere soil gathers.",
+    description: "SYSTEM ALERT: A tiny abode near the watcher's gate.\n> INSTRUCT: APPROACH SECURITY CABIN",
     locationName: "Small house outside near security cabin",
     qrId: "24",
     floor: "Outside",

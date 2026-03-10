@@ -14,7 +14,6 @@ export default function ParticipantPortal() {
   const [showScanner, setShowScanner] = useState(false);
   const [currentClueData, setCurrentClueData] = useState(null);
   const [fetchingClue, setFetchingClue] = useState(false);
-  const [fetchError, setFetchError] = useState('');
 
   // Custom Name Setup State
   const [customName, setCustomName] = useState('');
@@ -92,22 +91,10 @@ export default function ParticipantPortal() {
   }, [currentUser, teamData]);
 
   if (!currentUser || !teamData) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 p-6">
-      <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full mb-4"></div>
-      <p className="text-emerald-500 font-mono text-xs tracking-widest animate-pulse">SYNCING WITH DATABASE...</p>
+    <div className="min-h-screen flex items-center justify-center bg-slate-900">
+      <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
     </div>
   );
-
-  if (teamData._authError) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-center">
-        <h1 className="text-3xl font-black text-red-500 mb-4">INITIALIZATION FAILED</h1>
-        <p className="text-red-300 font-mono mb-6 text-sm">{teamData._authError}</p>
-        <p className="text-slate-400">The game database could not properly load your team's path. Please ask the Admin to check the Teams index or Firebase rules.</p>
-        <button onClick={() => window.location.reload()} className="mt-8 px-6 py-3 bg-red-600 font-bold rounded-xl text-white">Retry Connection</button>
-      </div>
-    );
-  }
 
   // FORCE CUSTOM TEAM NAME PROMPT (Must be before eventStatus blocks so they can register early!)
   if (!teamData.hasCustomName) {
@@ -191,17 +178,8 @@ export default function ParticipantPortal() {
   useEffect(() => {
     if (currentTargetId) {
       setFetchingClue(true);
-      setFetchError('');
       fetchClueFromDb(currentTargetId).then(data => {
-        if (!data) {
-          setFetchError("CLUE MISSING FROM DATABASE. PLEASE TELL ADMIN TO CLICK 'UPLOAD CLUE CARDS' ON DASHBOARD.");
-        } else {
-          setCurrentClueData(data);
-        }
-        setFetchingClue(false);
-      }).catch(err => {
-        console.error("Clue Fetch Error:", err);
-        setFetchError("DATABASE CONNECTION ERROR: " + err.message);
+        setCurrentClueData(data);
         setFetchingClue(false);
       });
     }
@@ -297,12 +275,7 @@ export default function ParticipantPortal() {
       </header>
 
       <main className="w-full flex-1 flex flex-col items-center justify-center z-10 w-full">
-        {fetchError ? (
-          <div className="w-full bg-red-900/50 border border-red-500 p-8 rounded-3xl text-center">
-            <h2 className="text-xl font-black text-red-500 mb-2">CRITICAL SYSTEM FAILURE</h2>
-            <p className="text-red-300 text-sm font-mono">{fetchError}</p>
-          </div>
-        ) : fetchingClue || !currentClueData ? (
+        {fetchingClue || !currentClueData ? (
           <div className="w-full glass p-8 rounded-3xl text-center">
             <h2 className="text-xl font-mono text-emerald-400 animate-pulse">DECRYPTING CLUE...</h2>
           </div>

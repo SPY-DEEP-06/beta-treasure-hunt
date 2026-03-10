@@ -63,32 +63,25 @@ export function AuthProvider({ children }) {
         // Listen to team progress from Firestore in real-time
         const teamDocRef = doc(db, 'Teams', user.uid);
         unsubDoc = onSnapshot(teamDocRef, async (teamDoc) => {
-          try {
-            if (teamDoc.exists()) {
-              const data = teamDoc.data();
+          if (teamDoc.exists()) {
+            const data = teamDoc.data();
 
-              // Critical Auto-Heal: If the active session is a legacy account or lacks the exact new 7-clue format, heal it instantly.
-              const hasValidPath = data.path && Array.isArray(data.path) && data.path.length === 7 && data.path[5] === 24 && data.path[6] === 25;
+            // Critical Auto-Heal: If the active session is a legacy account or lacks the exact new 7-clue format, heal it instantly.
+            const hasValidPath = data.path && Array.isArray(data.path) && data.path.length === 7 && data.path[5] === 24 && data.path[6] === 25;
 
-              if (!hasValidPath) {
-                await initializeTeamState(teamDoc.id, data.teamName || user.email.split('@')[0]);
-                // The setDoc inside initializeTeamState will immediately trigger this onSnapshot again.
-                return;
-              }
-
-              setTeamData({ id: teamDoc.id, ...data });
-            } else {
-              // Document completely missing (corrupted or deleted manually). Recreate it instantly.
-              await initializeTeamState(teamDoc.id, user.email.split('@')[0]);
+            if (!hasValidPath) {
+              await initializeTeamState(teamDoc.id, data.teamName || user.email.split('@')[0]);
+              // The setDoc inside initializeTeamState will immediately trigger this onSnapshot again.
               return;
             }
-          } catch (err) {
-            console.error("AuthContext DB Error:", err);
-            // By setting teamData to this string, ParticipantPortal can detect the crash.
-            setTeamData({ _authError: err.message });
-          } finally {
-            setLoading(false); // Only stop loading auth state once we have the DB state checked or failed
+
+            setTeamData({ id: teamDoc.id, ...data });
+          } else {
+            // Document completely missing (corrupted or deleted manually). Recreate it instantly.
+            await initializeTeamState(teamDoc.id, user.email.split('@')[0]);
+            return;
           }
+          setLoading(false); // Only stop loading auth state once we have the DB state checked
         });
       } else {
         setTeamData(null);
@@ -113,12 +106,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {loading ? (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent flex items-center justify-center rounded-full animate-spin mb-4"></div>
-          <p className="text-blue-400 font-mono text-sm tracking-widest animate-pulse">ESTABLISHING SECURE CONNECTION...</p>
-        </div>
-      ) : children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 }

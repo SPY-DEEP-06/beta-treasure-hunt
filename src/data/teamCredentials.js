@@ -15,7 +15,7 @@ export const teamCredentials = [
     { email: "team14-k7bw@beta.com", password: "h26djw2c" },
     { email: "team15-k7bw@beta.com", password: "nz9o5jgr" },
     { email: "team16-k7bw@beta.com", password: "uxu5dqab" },
-    { email: "team17-k7bw@beta.com", password: "w4mq9vom" },
+    { email: "team17-k7bw@beta.com", password: "w4mq9von" },
     { email: "team18-k7bw@beta.com", password: "ur28b24e" },
     { email: "team19-k7bw@beta.com", password: "qtwtyca9" },
     { email: "team20-k7bw@beta.com", password: "ya741etj" },

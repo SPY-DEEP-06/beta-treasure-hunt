@@ -47,8 +47,6 @@ export default function Login() {
             }
             throw signupError;
           }
-        } else if (loginError.code === 'auth/wrong-password') {
-          throw new Error('SYSTEM ERROR: Your team account is stuck on an old password in the database. Please ask the Admin to delete your team from the Firebase Authentication tab so you can log in fresh!');
         } else {
           throw loginError;
         }
@@ -56,11 +54,7 @@ export default function Login() {
 
       navigate('/');
     } catch (err) {
-      if (err.message.includes('SYSTEM ERROR')) {
-        setError(err.message);
-      } else {
-        setError(err.message === 'Incorrect password.' ? 'Incorrect password. Try again.' : `Error: ${err.message || 'Unknown login error'}`);
-      }
+      setError(err.message === 'Incorrect password.' ? 'Incorrect password. Try again.' : `Error: ${err.message || 'Unknown login error'}`);
       console.error("Login Error Details:", err);
     } finally {
       setLoading(false);
