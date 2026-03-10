@@ -63,25 +63,32 @@ export function AuthProvider({ children }) {
         // Listen to team progress from Firestore in real-time
         const teamDocRef = doc(db, 'Teams', user.uid);
         unsubDoc = onSnapshot(teamDocRef, async (teamDoc) => {
-          if (teamDoc.exists()) {
-            const data = teamDoc.data();
+          try {
+            if (teamDoc.exists()) {
+              const data = teamDoc.data();
 
-            // Critical Auto-Heal: If the active session is a legacy account or lacks the exact new 7-clue format, heal it instantly.
-            const hasValidPath = data.path && Array.isArray(data.path) && data.path.length === 7 && data.path[5] === 24 && data.path[6] === 25;
+              // Critical Auto-Heal: If the active session is a legacy account or lacks the exact new 7-clue format, heal it instantly.
+              const hasValidPath = data.path && Array.isArray(data.path) && data.path.length === 7 && data.path[5] === 24 && data.path[6] === 25;
 
-            if (!hasValidPath) {
-              await initializeTeamState(teamDoc.id, data.teamName || user.email.split('@')[0]);
-              // The setDoc inside initializeTeamState will immediately trigger this onSnapshot again.
+              if (!hasValidPath) {
+                await initializeTeamState(teamDoc.id, data.teamName || user.email.split('@')[0]);
+                // The setDoc inside initializeTeamState will immediately trigger this onSnapshot again.
+                return;
+              }
+
+              setTeamData({ id: teamDoc.id, ...data });
+            } else {
+              // Document completely missing (corrupted or deleted manually). Recreate it instantly.
+              await initializeTeamState(teamDoc.id, user.email.split('@')[0]);
               return;
             }
-
-            setTeamData({ id: teamDoc.id, ...data });
-          } else {
-            // Document completely missing (corrupted or deleted manually). Recreate it instantly.
-            await initializeTeamState(teamDoc.id, user.email.split('@')[0]);
-            return;
+          } catch (err) {
+            console.error("AuthContext DB Error:", err);
+            // By setting teamData to this string, ParticipantPortal can detect the crash.
+            setTeamData({ _authError: err.message });
+          } finally {
+            setLoading(false); // Only stop loading auth state once we have the DB state checked or failed
           }
-          setLoading(false); // Only stop loading auth state once we have the DB state checked
         });
       } else {
         setTeamData(null);
